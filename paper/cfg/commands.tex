@@ -1,0 +1,97 @@
+% Paired delimiter operators
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\DeclarePairedDelimiter\ceil{\left\lceil}{\right\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+\DeclarePairedDelimiter\autoparenthesis{(}{)}
+\newcommand{\parenthesis}[1]{\autoparenthesis*{#1}}
+
+\def\<{\langle}
+\def\>{\rangle}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\Bern}{\textrm{Bern}}
+\newcommand{\Beta}{\textrm{Beta}}
+\newcommand{\Bin}{\textrm{Bin}}
+\newcommand{\Cp}{\mathbb{C}}
+\newtheorem{definition}{Definition}
+\newcommand{\eqdef}{\mathbin{\stackrel{\rm def}{=}}}
+\newcommand{\Expo}{\textrm{Expo}}
+\newcommand{\Gam}{\textrm{Gamma}}
+\newcommand{\Geom}{\textrm{Geom}}
+\newcommand{\HGeom}{\textrm{HGeom}}
+\newcommand{\Hypergeometric}{\textrm{HGeom}}
+\newcommand{\inprod}[1]{\left\langle #1 \right\rangle}
+\newtheorem{lemma}{Lemma}
+\newcommand{\Mult}{\textrm{Mult}}
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\NBin}{\textrm{NBin}}
+\newcommand{\noin}{\noindent}
+\newcommand{\Pois}{\textrm{Pois}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newtheorem{theorem}{Theorem}
+\newcommand{\Unif}{\textrm{Unif}}
+\newcommand{\Var}{\mathbbm{V}}
+\newcommand{\Z}{\mathbb{Z}}
+\newtheorem{prop}{Proposition}
+
+% \newcommand{\parenthesis}[1]{\autoparenthesis*{#1}}
+
+% Probability
+
+\let\Pr\relax
+\DeclareMathOperator*{\Pr}{\mathbb{P}}
+\newcommand{\Cor}{\mathbbm{Cor}}
+\newcommand{\Cov}{\mathbbm{C}}
+\newcommand{\indep}{\perp \!\!\! \perp}
+
+% Statistics
+
+\DeclareMathOperator*{\E}{\mathbbm{E}}
+\DeclareMathOperator*{\Ind}{\mathbbm{1}}
+
+\NewDocumentCommand{\expect}{ e{^} s o >{\SplitArgument{1}{|}}m }{%
+  \operatorname{E}%     the expectation operator
+  \IfValueT{#1}{{\!}^{#1}}% the measure of the expectation
+  \IfBooleanTF{#2}{% *-variant
+    \expectarg*{\expectvar#4}%
+  }{% no *-variant
+    \IfNoValueTF{#3}{% no optional argument
+      \expectarg{\expectvar#4}%
+    }{% optional argument
+      \expectarg[#3]{\expectvar#4}%
+    }%
+  }%
+}
+\NewDocumentCommand{\expectvar}{mm}{%
+  #1\IfValueT{#2}{\nonscript\;\delimsize\vert\nonscript\;#2}%
+}
+\DeclarePairedDelimiterX{\expectarg}[1]{[}{]}{#1}
+
+
+% Convergence
+
+\newcommand{\limto}[2]{\lim\limits_{{#1} \rightarrow {#2}}}
+\newcommand{\limfty}[1]{\limto{#1}{\infty}}
+
+\DeclareMathOperator*{\conv}{\rightarrow}
+\DeclareMathOperator*{\convp}{\stackrel{\mathclap{P}}{\rightarrow}}
+\DeclareMathOperator*{\convd}{\stackrel{\mathclap{d}}{\rightarrow}}
+
+% \definecolor{color1}{RGB}{0, 206, 209}
+% \definecolor{color2}{RGB}{238, 130, 238}
+% \definecolor{color3}{RGB}{166, 166, 166}
+
+\definecolor{color1}{HTML}{E69F00}
+\definecolor{color2}{HTML}{56B4E9}
+\definecolor{color3}{HTML}{009E73}
+
+\definecolor{color4}{HTML}{0072B2}
+\definecolor{color5}{HTML}{D55E00}
+\definecolor{color6}{HTML}{CC79A7}
+\definecolor{color7}{HTML}{F0E442}
+
+% Functions
+
+\newcommand{\pinv}[1]{{#1}^{-1}}
