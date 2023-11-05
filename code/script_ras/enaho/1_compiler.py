@@ -139,7 +139,7 @@ enaho_df2 = enaho_df.copy()
 #--------------
 # Exporting final dataframe
 #--------------
-export_file = os.path.join(d1_path, 'income_panel.csv')
+export_file = os.path.join(d1_path, 'income.csv')
 enaho_df2.to_csv(export_file, index=False, encoding='utf-8')
 
 #%%
