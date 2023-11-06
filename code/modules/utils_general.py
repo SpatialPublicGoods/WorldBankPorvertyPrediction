@@ -16,10 +16,10 @@ import string
 
 class utils_general:
 
-    def __init__(self, dataPath):
+    def __init__(self):
 
         # Global string variables for paths and relative paths:
-        self.dataPath =  dataPath
+        self.dataPath =  'J:/My Drive/political-integration/Politician Career Path/data'
         self.raw = "raw"
         self.intermediate = "intermediate"
         self.clean = "clean"
