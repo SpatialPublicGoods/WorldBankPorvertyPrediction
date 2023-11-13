@@ -1,6 +1,6 @@
 ##############################################
 #
-# WORKING TRANSPORT INDUSTRY DATA
+# WORKING CARGO VEHICLES DATA
 #
 ##############################################
 
@@ -46,17 +46,47 @@ freq = 'm'
 
 # ============================
 #
-# 1. CLEANING DATA
+# 1. OPENING DATA
 #
 # ============================
 
 # %%
 
 #--------------
-# Opening
+# Opening main data
 #--------------
-file = os.path.join(o1_path, 'Transporte carga/1_Transporte_Carga_Carretero_2022.csv')
-df   = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
+file    = os.path.join(o1_path, 'Transporte carga/1_Transporte_Carga_Carretero_2022.csv')
+data_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
+
+#--------------
+# Opening SUNAT data
+#--------------
+file     = os.path.join(main_path, 'PadronRUC.csv')
+sunat_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
+
+#--------------
+# Merging data
+#--------------
+merged_df = data_df.merge(sunat_df, on='RUC', how='left', suffixes=('_main', '_sunat'))
+
+# %%
+
+
+
+
+
+# ============================
+#
+# 2. CLEANING DATA
+#
+# ============================
+
+# %%
+
+#--------------
+# Copy
+#--------------
+df = merged_df.copy()
 
 #--------------
 # Cleaning column names
@@ -64,11 +94,17 @@ df   = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
 
 # Dictionary of matching column names & new column names
 name_mapping = {
-    'ubigeo'      : 'ubigeo',
-    'fab anio'    : 'fab_date',
-    'servicio'    : 'service',
-    'fecha corte' : 'date',
-    'id'          : 'id'
+    'ubigeo sunat'     : 'ubigeo',
+    'fab anio'         : 'fab_date',
+    'servicio'         : 'service',
+    'id'               : 'id',
+    'fecha resolucion' : 'date',
+    'carga util'       : 'payload',
+    'p seco'           : 'dry_weight',
+    'p bruto'          : 'gross_weight',
+    'largo'            : 'length',
+    'ancho'            : 'width',
+    'alto'             : 'height'
 }
 
 # Map function to rename old matching names with new column names
@@ -142,13 +178,19 @@ agg_list = agg_map.get(freq, [])
 
 # Aggregating by aggregation list
 df = df.groupby(agg_list).agg({
-    'id'       : 'count',
-    'fab_5y'   : 'sum',
-    'fab_10y'  : 'sum',
-    'fab_20y'  : 'sum',
-    'fab_30y'  : 'sum',
-    'pub_serv' : 'sum',
-    }).reset_index()
+    'id'           : 'count',
+    'fab_5y'       : 'mean',
+    'fab_10y'      : 'mean',
+    'fab_20y'      : 'mean',
+    'fab_30y'      : 'mean',
+    'pub_serv'     : 'mean',
+    'payload'      : 'mean',
+    'dry_weight'   : 'mean',
+    'gross_weight' : 'mean',
+    'length'       : 'mean',
+    'width'        : 'mean',
+    'height'       : 'mean'
+}).reset_index()
 
 #--------------
 # Sorting data
@@ -156,18 +198,38 @@ df = df.groupby(agg_list).agg({
 df = df.sort_values(by=agg_list)
 
 #--------------
-# Renaming
+# Rounding variables
 #--------------
-df = df.rename(columns={'id': 'vehicles_tot'})
+df['fab_5y']       = df['fab_5y'].round(4)
+df['fab_10y']      = df['fab_10y'].round(4)
+df['fab_20y']      = df['fab_20y'].round(4)
+df['fab_30y']      = df['fab_30y'].round(4)
+df['pub_serv']     = df['pub_serv'].round(4)
+
+df['payload']      = df['payload'].round(2)
+df['dry_weight']   = df['dry_weight'].round(2)
+df['gross_weight'] = df['length'].round(2)
+df['length']       = df['length'].round(2)
+df['width']        = df['width'].round(2)
+df['height']       = df['height'].round(2)
 
 #--------------
-# Percentage variables
+# Renaming
 #--------------
-df['fab_5y']   = (df['fab_5y']   / df['vehicles_tot']).round(4)
-df['fab_10y']  = (df['fab_10y']  / df['vehicles_tot']).round(4)
-df['fab_20y']  = (df['fab_20y']  / df['vehicles_tot']).round(4)
-df['fab_30y']  = (df['fab_30y']  / df['vehicles_tot']).round(4)
-df['pub_serv'] = (df['pub_serv'] / df['vehicles_tot']).round(4)
+df = df.rename(columns={
+    'id'           : 'vehicles_tot',
+    'fab_5y'       : 'fab_5y_p',
+    'fab_10y'      : 'fab_10y_p',
+    'fab_20y'      : 'fab_20y_p',
+    'fab_30y'      : 'fab_30y_p',
+    'pub_serv'     : 'pub_serv_p',
+    'payload'      : 'payload_m',
+    'dry_weight'   : 'dry_weight_m',
+    'gross_weight' : 'gross_weight_m',
+    'length'       : 'length_m',
+    'width'        : 'width_m',
+    'height'       : 'height_m'
+    })
 
 # %%
 
@@ -177,7 +239,7 @@ df['pub_serv'] = (df['pub_serv'] / df['vehicles_tot']).round(4)
 
 # ============================
 #
-# 2. EXPORTING DATA
+# 3. EXPORTING DATA
 #
 # ============================
 
