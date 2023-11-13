@@ -23,6 +23,7 @@ import os
 import pandas as pd
 from unidecode import unidecode
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
 
@@ -38,7 +39,7 @@ d1_path = os.path.join(main_path, '2_intermediate')
 #--------------
 freq = 'm'
 y0 = 2016
-y1 = 2018
+y1 = 2019
 
 #%%
 
@@ -60,7 +61,7 @@ def data_cleaning(year_to_clean, chosen_frequency):
     # Opening
     #--------------
     file = os.path.join(o1_path, 'violencia familiar/SIDPOL_' + str(year_to_clean) + '_Violencia_familiar.csv')
-    df   = df = pd.read_csv(file, encoding='UTF-8')
+    df   = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
 
     #--------------
     # Cleaning column names
@@ -94,11 +95,21 @@ def data_cleaning(year_to_clean, chosen_frequency):
 
     df.dropna(inplace=True)
 
-    date_parts = df['date'].str.split('/', expand=True)
-    df['year']  = pd.to_numeric(date_parts[2], errors='coerce').fillna(0).astype(int)
-    df['month'] = pd.to_numeric(date_parts[0], errors='coerce').fillna(0).astype(int)
-    df['day']   = pd.to_numeric(date_parts[1], errors='coerce').fillna(0).astype(int)
+    ### If date is string
+    if df['date'].dtype == 'object':
+        date_parts = df['date'].str.split('/', expand=True)
+        df['year'] = pd.to_numeric(date_parts[2], errors='coerce').fillna(0).astype(int)
+        df['month'] = pd.to_numeric(date_parts[0], errors='coerce').fillna(0).astype(int)
+        df['day'] = pd.to_numeric(date_parts[1], errors='coerce').fillna(0).astype(int)
 
+    ### If date is numeric
+    elif pd.api.types.is_numeric_dtype(df['date']):
+        df['date'] = pd.to_datetime(df['date'], unit='D', origin='1899-12-30')
+        df['year'] = df['date'].dt.year
+        df['month'] = df['date'].dt.month
+        df['day'] = df['date'].dt.day
+
+    ### Creating quartes variable:
     df.loc[(df['month'] <= 3)                     , 'quarter'] = 1
     df.loc[(df['month'] >= 4) & (df['month'] <= 6), 'quarter'] = 2
     df.loc[(df['month'] >= 7) & (df['month'] <= 9), 'quarter'] = 3
@@ -174,7 +185,7 @@ final_df = pd.concat(append_df, ignore_index=True)
 # Cleaning
 #--------------
 final_df['ubigeo']  = final_df['ubigeo'].astype(int)
-final_df = final_df.loc[final_df['year'] >= 2016]
+final_df = final_df[final_df['year']>=2016]
 
 # %%
 
@@ -215,43 +226,38 @@ final_df.to_csv(export_file, index=False, encoding='utf-8')
 #--------------
 df = final_df.copy()
 
-
 #--------------
-# Aggregating by month
+# Aggregating by year, month
 #--------------
-agg_list = ['year', 'month']
-df = df.groupby(agg_list).agg({'cases_tot': 'count'}).reset_index()
+df_aggregated = df.groupby(['year', 'month']).agg({'cases_tot': 'sum'}).reset_index()
+df_aggregated['date'] = pd.to_datetime(df_aggregated[['year', 'month']].assign(DAY=1))
+df_aggregated = df_aggregated.sort_values(by='date')
 
-
-df
+df_aggregated
 
 # %%
 
+#--------------
+# Graphing
+#--------------
 
+# Graph size
+plt.figure(figsize=(15, 8))
 
+# Graph
+plt.bar(df_aggregated['date'], df_aggregated['cases_tot'], width=20)
 
+# Title and axis labels
+plt.title('Evolution of domestic violence, by month, 2016 - 2019')
+plt.xlabel('Date')
+plt.ylabel('Total reported cases')
 
-# Para cada año, filtrar los datos y hacer un histograma
-for year in sorted(years):
-    # Filtra el DataFrame por el año actual en el bucle
-    df_year = df[df['year'] == year]
-    
-    # Agrupa los datos por 'month' y suma los 'cases'
-    monthly_cases = df_year.groupby('year', 'month')['cases_tot'].sum()
-    
-    # Crea un histograma con la suma de casos por mes
-    plt.figure(figsize=(10, 6))
-    plt.bar(monthly_cases.index, monthly_cases.values)
-    
-    # Establece el título y las etiquetas
-    plt.title(f'Total cases of domestic violence per month, {year}')
-    plt.xlabel('Month')
-    plt.ylabel('Total cases')
-    plt.xticks(monthly_cases.index, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-    
-    # Muestra el gráfico
-    plt.show()
+# x-axis dates configuration
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+plt.xticks(rotation=45)
 
-
+# Show graph
+plt.show()
 
 # %%
