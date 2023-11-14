@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
+from datetime import datetime
+from consolidate_ml_dataframe import DataPreparationForML
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
@@ -14,64 +16,42 @@ from sklearn.linear_model import Lasso, Ridge
 from sklearn.impute import SimpleImputer
 
 
-# Get current working directory and parameters:
 
+
+
+#%% Get current working directory and parameters:
+
+# Parameters
 dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
-
-admin_data_path = os.path.join(dataPath, '1_raw/peru/big_data/admin')
-
-working = '3_working'
-
-clean = '4_clean'
 
 freq = 'm'
 
-date = '2023-11-13'
+date = datetime.today().strftime('%Y-%m-%d')
 
+#--------------
+
+dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 
 # Read dataset:
 
-ml_dataset = pd.read_csv(os.path.join(dataPath, clean, 'ml_dataset_' + date +'.csv'), index_col=0)
-
-ml_dataset.columns
+ml_dataset = pd.read_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + dpml.date +'.csv'), index_col=0)
 
 
-# define dependent variable:
-depvar = 'income_pc'
-
-# define independent variables:
-indepvar_enaho = ['income_pc_lagged','spend_pc_lagged']
-
-indepvar_police_reports = ['Economic_Commercial_Offenses',
-       'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
-       'Information_Cyber_Crimes', 'Intellectual_Property_Cultural_Heritage',
-       'Miscellaneous_Offenses', 'Personal_Liberty_Violations',
-       'Property_Real_Estate_Crimes', 'Public_Administration_Offenses',
-       'Public_Order_Political_Crimes', 'Public_Safety_Health',
-       'Sexual_Offenses', 'Theft_Robbery_Related_Crimes', 'Violence_Homicide']
-
-indepvar_domestic_violence = ['cases_tot']
-
-indepvar_cargo_vehicles = ['vehicles_tot', 'fab_5y_p', 'fab_10y_p', 'fab_20y_p',
-       'fab_30y_p', 'pub_serv_p', 'payload_m', 'dry_weight_m',
-       'gross_weight_m', 'length_m', 'width_m', 'height_m']
-
-indepvars = indepvar_enaho + indepvar_police_reports + indepvar_domestic_violence + indepvar_cargo_vehicles
-
-
+ml_dataset = ml_dataset.query('income_pc>0')
 
 # First pass dropping all missing values:
 ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 
-Y = ml_dataset_filtered.loc[:,depvar]
-X = ml_dataset_filtered.loc[:,indepvars]
+Y = np.log(ml_dataset_filtered.loc[:,dpml.depvar])
+X = ml_dataset_filtered.loc[:,dpml.indepvars]
 
 imputer = SimpleImputer(strategy='mean')
 X = imputer.fit_transform(X)
 
 
-group_means = ml_dataset_filtered.groupby(['year'])[indepvars].transform('mean')
-group_stds = ml_dataset_filtered.groupby(['year'])[indepvars].transform('std')
+
+group_means = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('mean')
+group_stds = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('std')
 
 # Step 2: Standardize the variables
 # X_standardized = (X - group_means) / group_stds
@@ -79,8 +59,6 @@ X_standardized = X
 
 X_standardized['const'] = 1
 
-
-X_standardized
 
 # imputer = SimpleImputer(strategy='mean')
 # X_numerical = imputer.fit_transform(X)
@@ -99,7 +77,7 @@ models = {
 }
 
 
-n_folds = 3
+n_folds = 5
 # Dictionary to store grid search results
 grid_search_results = {}
 
