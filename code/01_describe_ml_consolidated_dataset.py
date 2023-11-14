@@ -25,7 +25,8 @@ ml_dataset = ml_dataset.query('income_pc>0')
 # First pass dropping all missing values:
 ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 
-Y = ml_dataset_filtered.loc[:,dpml.depvar]
+# Y = ml_dataset_filtered.loc[:,dpml.depvar]
+Y = ml_dataset_filtered.loc[:,'log_income_pc']
 
 X = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars]
 
@@ -35,17 +36,29 @@ print("Descriptive Statistics for Numerical Data:\n", numerical_descriptive_stat
 
 
 # 1. First run raw correlation between lagged variables and income_pc:
-
+# Income vs lagged income:
 sns.regplot(x=X['income_pc_lagged'], y=Y,scatter_kws={'alpha':0.5}, line_kws={"color": "red"})
 plt.savefig('../figures/income_vs_lagged_income_scatterplot.pdf', bbox_inches='tight')
 plt.show()
 plt.clf()
 
+# Spend vs lagged income:
 sns.regplot(x=X['spend_pc_lagged'], y=Y,scatter_kws={'alpha':0.5}, line_kws={"color": "red"})
 plt.savefig('../figures/spend_vs_lagged_income_scatterplot.pdf', bbox_inches='tight')
 plt.show()
 plt.clf()
 
+# Income vs lagged income (log-log):
+sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged'], 
+            y=ml_dataset_filtered['log_income_pc'],
+            scatter_kws={'alpha':0.5}, 
+            line_kws={"color": "red"}, 
+            x_bins=500)
+plt.xlim(5,12)
+plt.ylim(5,12)
+plt.savefig('../figures/income_vs_lagged_income_log_log_scatterplot.pdf', bbox_inches='tight')
+plt.show()
+plt.clf()
 
 # 2. Histograms for numerical variables: 
 
@@ -96,7 +109,7 @@ for i, col in enumerate(X.columns):
 
         # Plot the binscatter plot
         sns.regplot(x=X[col], y=Y, ax=axes[row_num, col_num],
-                    scatter_kws={'alpha':0.5}, line_kws={"color": "red"}, x_bins=10)
+                    scatter_kws={'alpha':0.5}, line_kws={"color": "red"}, x_ci=None, x_bins=20)
         
         axes[row_num, col_num].set_title(f'')
 

@@ -87,14 +87,21 @@ class DataPreparationForML:
         """
 
         # Read csv
-        enaho = pd.read_csv(os.path.join(self.dataPath, self.working, self.enaho), index_col=0, parse_dates=True).reset_index()
+        enaho = pd.read_csv(os.path.join(self.dataPath, 
+                                         self.working, 
+                                         self.enaho), index_col=0, parse_dates=True).reset_index()
 
+        # Manipulate identificator variables:
         enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
 
         enaho['year'] = enaho['year'].dt.year
 
         # Get sum of income and individuals at the conglome:
-        enaho_conglome = enaho.groupby(['conglome', 'year']).sum().reset_index()
+        enaho_conglome = enaho.groupby(['ubigeo','conglome', 'year']).sum().reset_index()
+              
+        # Compute income per capita (dependent variable):
+        enaho['income_pc'] = enaho['ingmo1hd']/enaho['mieperho']
+        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
 
         # Compute income per capita:
 
@@ -112,12 +119,21 @@ class DataPreparationForML:
         enaho_conglome['income_pc_lagged'] = enaho_conglome.groupby('conglome')['income_pc'].shift(1)
         enaho_conglome['spend_pc_lagged'] = enaho_conglome.groupby('conglome')['spend_pc'].shift(1)
 
+        enaho_conglome['log_income_pc_lagged'] = enaho_conglome.groupby('conglome')['log_income_pc'].shift(1)
+        enaho_conglome['log_spend_pc_lagged'] = enaho_conglome.groupby('conglome')['log_spend_pc'].shift(1)
+
         enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
-                        .loc[:, ['conglome','year','log_income_pc','log_spend_pc','income_pc','income_pc_lagged','spend_pc','spend_pc_lagged']]
+                        .loc[:, ['ubigeo',
+                                 'conglome',
+                                 'year',
+                                 'log_income_pc_lagged',
+                                 'log_spend_pc_lagged',
+                                 'income_pc_lagged',
+                                 'spend_pc_lagged']]
                         )
         
         # Get conglome data to enaho:
-        enaho = enaho.merge(enaho_conglome, on=['conglome', 'year'], how='left')
+        enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
 
         return enaho
 
@@ -206,6 +222,8 @@ class DataPreparationForML:
 
         cargo_vehicles['ubigeo'] = 'U-' + cargo_vehicles['ubigeo'].astype(str).str.zfill(6)
 
+        return cargo_vehicles
+
 
     def read_consolidated_ml_dataset(self):
 
@@ -251,4 +269,5 @@ if __name__ == '__main__':
 
 
     ml_dataset.to_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + date +'.csv'))
+
 
