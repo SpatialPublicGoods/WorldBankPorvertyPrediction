@@ -34,6 +34,21 @@ numerical_descriptive_stats = X.describe()
 print("Descriptive Statistics for Numerical Data:\n", numerical_descriptive_stats)
 
 
+# 1. First run raw correlation between lagged variables and income_pc:
+
+sns.regplot(x=X['income_pc_lagged'], y=Y,scatter_kws={'alpha':0.5}, line_kws={"color": "red"})
+plt.savefig('../figures/income_vs_lagged_income_scatterplot.pdf', bbox_inches='tight')
+plt.show()
+plt.clf()
+
+sns.regplot(x=X['spend_pc_lagged'], y=Y,scatter_kws={'alpha':0.5}, line_kws={"color": "red"})
+plt.savefig('../figures/spend_vs_lagged_income_scatterplot.pdf', bbox_inches='tight')
+plt.show()
+plt.clf()
+
+
+# 2. Histograms for numerical variables: 
+
 # Define the grid size
 n_rows = 5
 n_cols = 6
@@ -55,9 +70,11 @@ for i, col in enumerate(X.columns):
 
 # Show the entire grid plot
 plt.savefig('../figures/histograms_ml_dataset_variables.pdf', bbox_inches='tight')
-plt.show()
+# plt.show()
 
 
+
+# 3. Correlations between explanatory variables and outcome: 
 
 # Define the grid size for the subplot
 n_rows = 5
@@ -83,4 +100,5 @@ for i, col in enumerate(X.columns):
         
         axes[row_num, col_num].set_title(f'')
 
-plt.show()
+plt.savefig('../figures/correlation_ml_dataset_variables.pdf', bbox_inches='tight')
+# plt.show()
