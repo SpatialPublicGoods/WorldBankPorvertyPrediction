@@ -37,10 +37,10 @@ ml_dataset.columns
 
 
 # define dependent variable:
-depvar = 'ingmo1hd'
+depvar = 'income_pc'
 
 # define independent variables:
-indepvar_enaho = ['mieperho','income_pc_lagged','spend_pc_lagged']
+indepvar_enaho = ['income_pc_lagged','spend_pc_lagged']
 
 indepvar_police_reports = ['Economic_Commercial_Offenses',
        'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
@@ -61,21 +61,26 @@ indepvars = indepvar_enaho + indepvar_police_reports + indepvar_domestic_violenc
 
 
 # First pass dropping all missing values:
-ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020').dropna()
+ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 
 Y = ml_dataset_filtered.loc[:,depvar]
 X = ml_dataset_filtered.loc[:,indepvars]
 
-group_means = ml_dataset_filtered.groupby(['ubigeo','year'])[indepvars].transform('mean')
-group_stds = ml_dataset_filtered.groupby(['ubigeo','year'])[indepvars].transform('std')
+imputer = SimpleImputer(strategy='mean')
+X = imputer.fit_transform(X)
+
+
+group_means = ml_dataset_filtered.groupby(['year'])[indepvars].transform('mean')
+group_stds = ml_dataset_filtered.groupby(['year'])[indepvars].transform('std')
 
 # Step 2: Standardize the variables
-X_standardized = (X - group_means) / group_stds
+# X_standardized = (X - group_means) / group_stds
+X_standardized = X
+
+X_standardized['const'] = 1
 
 
-
-
-
+X_standardized
 
 # imputer = SimpleImputer(strategy='mean')
 # X_numerical = imputer.fit_transform(X)
@@ -89,23 +94,25 @@ models = {
     "Linear Regression": (LinearRegression(), {}),
     "Lasso": (Lasso(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
-    "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
-    "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
+    # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
+    # "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
 }
 
 
-n_folds = 5
+n_folds = 3
 # Dictionary to store grid search results
 grid_search_results = {}
 
 # Perform grid search with cross-validation for each model
 for model_name, (model, params) in models.items():
     grid_search = GridSearchCV(model, params, cv=5, scoring='neg_mean_squared_error', return_train_score=True, n_jobs=4)
-    grid_search.fit(X, Y)
+    grid_search.fit(X_standardized, Y)
     grid_search_results[model_name] = grid_search
 
 # Print the best parameters and corresponding RMSE for each model
 for model_name, results in grid_search_results.items():
     best_rmse = np.sqrt(-results.best_score_)
     print(f"{model_name}: Best Params: {results.best_params_}, Best RMSE: {best_rmse:.3f}")
+
+
 
