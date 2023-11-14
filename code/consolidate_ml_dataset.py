@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
-import datetime
+from datetime import datetime
 
 #--------------
 # Paths
@@ -59,7 +59,7 @@ def read_enaho_panel():
 
 def read_domestic_violence_cases():
 
-    domestic_violence = pd.read_csv(os.path.join(dataPath, working, 'domestic_violence.csv'), index_col=0, parse_dates=True).reset_index()
+    domestic_violence = pd.read_csv(os.path.join(dataPath, working, 'domestic_violence.csv'), index_col=0).reset_index()
 
     domestic_violence['ubigeo'] = 'U-' + domestic_violence['ubigeo'].astype(str).str.zfill(6)
 
@@ -70,16 +70,28 @@ def read_domestic_violence_cases():
 
 def read_police_reports():
 
-    police_reports = pd.read_csv(os.path.join(dataPath, working, 'delitos_distrito_comisaria_clean_panel.csv'), index_col=0, parse_dates=True).reset_index()
+    police_reports = pd.read_csv(os.path.join(dataPath, working, 'delitos_distrito_comisaria_clean_panel.csv'), index_col=0).reset_index()
 
     police_reports['ubigeo'] = 'U-' + police_reports['ubigeo'].astype(str).str.zfill(6)
 
-    police_reports['year'] = police_reports['Year'].dt.year
+    police_reports['year'] = police_reports['Year']
 
     # Group by granularity and frequency:
     police_reports_by_ubigeo = police_reports.groupby(['year', 'ubigeo']).sum().reset_index()
 
     return police_reports_by_ubigeo
+
+
+
+def read_cargo_vehicles():
+
+    cargo_vehicles = pd.read_csv(os.path.join(dataPath, working, 'cargo_vehicles.csv'), index_col=0).reset_index()
+
+    cargo_vehicles['ubigeo'] = 'U-' + cargo_vehicles['ubigeo'].astype(str).str.zfill(6)
+    
+
+    return cargo_vehicles
+
 
 # Load data:
 
@@ -89,10 +101,12 @@ domestic_violence = read_domestic_violence_cases()
 
 police_reports_by_ubigeo = read_police_reports()
 
+cargo_vehicles = read_cargo_vehicles()
 
 
 ml_dataset = (enaho.merge(police_reports_by_ubigeo, on=['ubigeo', 'year'], how='left')
                     .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
+                    .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                     )
 
 

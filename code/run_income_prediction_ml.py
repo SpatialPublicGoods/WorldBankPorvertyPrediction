@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso, Ridge
+from sklearn.impute import SimpleImputer
 
 
 # Get current working directory and parameters:
@@ -30,7 +31,9 @@ date = '2023-11-13'
 
 # Read dataset:
 
-ml_dataset = pd.read_csv(os.path.join(dataPath, clean, 'ml_dataset.csv'), index_col=0)
+ml_dataset = pd.read_csv(os.path.join(dataPath, clean, 'ml_dataset_' + date +'.csv'), index_col=0)
+
+ml_dataset.columns
 
 
 # define dependent variable:
@@ -49,13 +52,34 @@ indepvar_police_reports = ['Economic_Commercial_Offenses',
 
 indepvar_domestic_violence = ['cases_tot']
 
-indepvars = indepvar_enaho + indepvar_police_reports + indepvar_domestic_violence
+indepvar_cargo_vehicles = ['vehicles_tot', 'fab_5y_p', 'fab_10y_p', 'fab_20y_p',
+       'fab_30y_p', 'pub_serv_p', 'payload_m', 'dry_weight_m',
+       'gross_weight_m', 'length_m', 'width_m', 'height_m']
+
+indepvars = indepvar_enaho + indepvar_police_reports + indepvar_domestic_violence + indepvar_cargo_vehicles
 
 
-ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 
-Y = ml_dataset_filtered.loc[:,depvar].fillna(0)
-X = ml_dataset_filtered.loc[:,indepvars].fillna(0)
+# First pass dropping all missing values:
+ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020').dropna()
+
+Y = ml_dataset_filtered.loc[:,depvar]
+X = ml_dataset_filtered.loc[:,indepvars]
+
+group_means = ml_dataset_filtered.groupby(['ubigeo','year'])[indepvars].transform('mean')
+group_stds = ml_dataset_filtered.groupby(['ubigeo','year'])[indepvars].transform('std')
+
+# Step 2: Standardize the variables
+X_standardized = (X - group_means) / group_stds
+
+
+
+
+
+
+# imputer = SimpleImputer(strategy='mean')
+# X_numerical = imputer.fit_transform(X)
+
 
 #%% Start machine learning models:
 
