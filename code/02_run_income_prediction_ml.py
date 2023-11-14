@@ -34,7 +34,7 @@ dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 
 # Read dataset:
 
-ml_dataset = pd.read_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + dpml.date +'.csv'), index_col=0)
+ml_dataset = dpml.read_consolidated_ml_dataset()
 
 
 ml_dataset = ml_dataset.query('income_pc>0')
@@ -42,23 +42,23 @@ ml_dataset = ml_dataset.query('income_pc>0')
 # First pass dropping all missing values:
 ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 
-Y = np.log(ml_dataset_filtered.loc[:,dpml.depvar])
-X = ml_dataset_filtered.loc[:,dpml.indepvars]
+# Y = np.log(ml_dataset_filtered.loc[:,dpml.depvar])
+Y = ml_dataset_filtered.loc[:,'log_income_pc']
+X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] + dpml.indepvars[2:]]
 
 imputer = SimpleImputer(strategy='mean')
-X = imputer.fit_transform(X)
+
+X_imputed = imputer.fit_transform(X)
 
 
-
-group_means = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('mean')
-group_stds = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('std')
+# group_means = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('mean')
+# group_stds = ml_dataset_filtered.groupby(['year'])[dpml.indepvars].transform('std')
 
 # Step 2: Standardize the variables
 # X_standardized = (X - group_means) / group_stds
-X_standardized = X
-
+X_standardized = pd.DataFrame(X_imputed)
+X_standardized.columns = X.columns
 X_standardized['const'] = 1
-
 
 # imputer = SimpleImputer(strategy='mean')
 # X_numerical = imputer.fit_transform(X)
@@ -93,4 +93,16 @@ for model_name, results in grid_search_results.items():
     print(f"{model_name}: Best Params: {results.best_params_}, Best RMSE: {best_rmse:.3f}")
 
 
+
+best_model_grid_search = grid_search_results['Lasso']
+best_model = best_model_grid_search.best_estimator_
+if hasattr(best_model, 'coef_'):
+    print(f"Coefficients of the best model ({'Lasso'}): {best_model.coef_}")
+elif hasattr(best_model, 'feature_importances_'):
+    print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
+
+
+# Get list of important variables according to Lasso:
+X.columns[best_model.coef_[:-1] ==0]
+X.columns[best_model.coef_[:-1] !=0]
 
