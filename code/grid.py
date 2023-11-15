@@ -31,37 +31,36 @@ def load_and_arrange_shapfiles(data_path, year = 2014):
     '''
 
     # Convert to UTM (For Peru is epsg:32718)
-    major_home_data = (pd.read_csv(os.path.join(data_path, 'clean', 'spatial_analysis_' + date + '.csv'))
-                                .query('Proceso == ' + str(year))
-                                .groupby('Ubigeo')
-                                .first()
-                                .reset_index()
-                                .loc[:,['Ubigeo', 'lat_candidate', 'lon_candidate']])
+    district_shapefile = gpd.read_file(os.path.join(data_path, 
+                                                    'raw', 
+                                                    'District Shapefiles', 
+                                                    "LIMITE_DISTRITAL_2020_INEI_geogpsperu_juansuyo_931381206.shp")
+                                                    )
+    
+    district_shapefile['centroid_district'] = district_shapefile.geometry.centroid
 
-    district_shapefile = gpd.read_file(os.path.join(data_path, 'raw', 'District Shapefiles', "LIMITE_DISTRITAL_2020_INEI_geogpsperu_juansuyo_931381206.shp"))
+    district_shapefile['ubigeo'] = 'U-' + district_shapefile['UBIGEO'].astype(str).str.zfill(6)
 
-    district_shapefile['UBIGEO'] = district_shapefile['UBIGEO'].astype(int)
+    district_shapefile = district_shapefile.sort_values(by=['ubigeo'], ascending=[False])
 
-    district_shapefile = district_shapefile.merge(major_home_data, left_on = 'UBIGEO', right_on = 'Ubigeo')
+    district_shapefile.drop(columns='UBIGEO', inplace=True)
 
-    district_shapefile['centroid_home'] = [shapely.geometry.Point(x,y) for x, y in zip(district_shapefile['lon_candidate'],district_shapefile['lat_candidate'])]
-
-    district_shapefile_polygon = (district_shapefile.loc[:, ['Ubigeo', 'geometry']]
+    district_shapefile_polygon = (district_shapefile.loc[:, ['ubigeo', 'geometry']]
                                                     .set_geometry('geometry')
                                                     .to_crs({'init': 'epsg:32718'})
-                                                    .set_index('Ubigeo')
+                                                    .set_index('ubigeo')
                                                     )
 
-    district_shapefile_home = (district_shapefile.loc[:, ['Ubigeo', 'centroid_home']]
-                                                    .set_geometry('centroid_home')
+    district_shapefile_centroid = (district_shapefile.loc[:, ['ubigeo', 'centroid_district']]
+                                                    .set_geometry('centroid_district')
                                                     .to_crs({'init': 'epsg:32718'})
-                                                    .set_index('Ubigeo')
+                                                    .set_index('ubigeo')
                                                     )
 
-    district_shapefile_home = gpd.clip(district_shapefile_home,district_shapefile_polygon) #.to_crs(district_shapefile_polygon.crs)
+    district_shapefile_centroid = gpd.clip(district_shapefile_centroid,district_shapefile_polygon) #.to_crs(district_shapefile_polygon.crs)
 
     
-    return district_shapefile_home, district_shapefile_polygon
+    return district_shapefile_centroid, district_shapefile_polygon
 
 
 
@@ -123,8 +122,8 @@ def get_point_recentering_coordinates(cells,temp_home):
     x_hex = cells.query('hexagon_home == True').centroid.x.iloc[0]
     y_hex = cells.query('hexagon_home == True').centroid.y.iloc[0]
 
-    x_home = temp_home.centroid_home.x.iloc[0]
-    y_home = temp_home.centroid_home.y.iloc[0]
+    x_home = temp_home.centroid_district.x.iloc[0]
+    y_home = temp_home.centroid_district.y.iloc[0]
 
     x_dif = x_home - x_hex
     y_dif = y_home - y_hex 
@@ -132,25 +131,25 @@ def get_point_recentering_coordinates(cells,temp_home):
     return x_dif, y_dif
 
 
-def main():
+def main(dataPath='J:/My Drive/PovertyPredictionRealTime/data'):
 
     # Start running code:
 
-    district_shapefile_home, district_shapefile_polygon = load_and_arrange_shapfiles(data_path)
+    district_shapefile_centroid, district_shapefile_polygon = load_and_arrange_shapfiles(data_path)
 
     df = pd.DataFrame()
 
     # Size of cell
     cell_size = 1000 # map is projected in metres so 1kmx1km
 
-    for uu in district_shapefile_home.index:
+    for uu in district_shapefile_centroid.index:
 
         # Here we start loop to create the points for each segment (it is faster
         # to do it by segment and more precise)
 
         temp_poly = district_shapefile_polygon.loc[[uu]] # segment number i 
 
-        temp_home = district_shapefile_home.loc[[uu]] # segment number i 
+        temp_home = district_shapefile_centroid.loc[[uu]] # segment number i 
 
         polygon_cointains_home = temp_poly.contains(temp_home).iloc[0]
 
@@ -181,31 +180,35 @@ def main():
 
         
         temp_cells = pd.DataFrame({'geometry':cells})
-        temp_cells['Ubigeo'] = uu
+        temp_cells['ubigeo'] = uu
         temp_cells['hexagon_id'] = range(1, temp_cells.shape[0]+1)
 
         df = df.append(temp_cells, ignore_index = True)
         
-        print("Ubigeo number: " + str(uu) + " -- done")
+        print("ubigeo number: " + str(uu) + " -- done")
         
 
     # Convert Dataframe to Geopandas:
-    df_gpd = gpd.GeoDataFrame(df, columns=['geometry', 'Ubigeo','hexagon_id'], 
+    df_gpd = gpd.GeoDataFrame(df, columns=['geometry', 'ubigeo','hexagon_id'], 
                                     crs = district_shapefile_polygon.crs)
+    
+    
+    df_gpd['ubigeo_hexagon'] = df_gpd['ubigeo'] + '-' + df_gpd['hexagon_id'].astype(str).str.zfill(6)
+
 
     # Save Geopandas to shp file ...
-    # df_gpd.to_file(os.path.join(data_path, 'intermediate', 'fishnet_centered_2014.shp'))
+    df_gpd.to_file(os.path.join(dataPathPovertyPrediction, '2_intermediate', 'fishnet_centered_2014.shp'))
 
-    # Add trailing zeros to ubigeo
-    df_gpd['Ubigeo'] = [str(int(x)).rjust(6, '0') for x in df_gpd['Ubigeo']]
-    district_shapefile_home.index = [str(int(x)).rjust(6, '0') for x in district_shapefile_home.index]
 
     # Plot and save region of Arequipa to show how it will look like:
-    base = df_gpd.loc[df_gpd['Ubigeo'].str[0:4] == '1201' ].plot(color='white', edgecolor='black', linewidth=.1)
-    district_shapefile_home.loc[district_shapefile_home.index.str[0:4] == '1201'].plot(ax= base, color='red', edgecolor='red', markersize=.1)
-    plt.savefig(os.path.join('..', 'figures', 'figA1_grid_trujillo.pdf'))
+    base = df_gpd.loc[df_gpd['ubigeo'].str[0:6] == 'U-2301' ].plot(color='white', edgecolor='black', linewidth=.1)
+    plt.savefig(os.path.join('..', 'figures', 'figA1_fishnet_2301.pdf'))
+    plt.show()
+
 
 #%% Run code:
 
-main()
+dataPathPovertyPrediction = 'J:/My Drive/PovertyPredictionRealTime/data'
+
+main(dataPathPovertyPrediction)
 
