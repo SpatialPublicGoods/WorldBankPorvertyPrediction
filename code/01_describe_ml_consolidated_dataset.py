@@ -12,7 +12,8 @@ dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
 freq = 'm'
 
-date = datetime.today().strftime('%Y-%m-%d')
+# date = datetime.today().strftime('%Y-%m-%d')
+date = '2023-11-14' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -115,3 +116,14 @@ for i, col in enumerate(X.columns):
 
 plt.savefig('../figures/correlation_ml_dataset_variables.pdf', bbox_inches='tight')
 # plt.show()
+
+
+# 4. Get share of missing values in each variable:
+
+plt.figure(figsize=(10, 8))  # Adjust the figure size as needed
+X.isna().mean().plot(kind='barh')
+plt.title('Feature Importances')
+plt.xlabel('Share of Missing Values')
+plt.ylabel('')
+plt.savefig('../figures/share_of_missings.pdf', bbox_inches='tight')
+plt.show()

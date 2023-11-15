@@ -93,7 +93,6 @@ class DataPreparationForML:
 
         # Manipulate identificator variables:
         enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
-
         enaho['year'] = enaho['year'].dt.year
 
         # Get sum of income and individuals at the conglome:
@@ -106,13 +105,11 @@ class DataPreparationForML:
         # Compute income per capita:
 
         enaho_conglome['income_pc'] = enaho_conglome['ingmo1hd']/enaho_conglome['mieperho']
-
         enaho_conglome['log_income_pc'] = np.log(enaho_conglome['income_pc']+0.1)
 
         # Compute gasto per capita:
 
         enaho_conglome['spend_pc'] = enaho_conglome['gashog1d']/enaho_conglome['mieperho']
-
         enaho_conglome['log_spend_pc'] = np.log(enaho_conglome['income_pc']+0.1)
 
         # Get lagged income_pc
@@ -136,6 +133,7 @@ class DataPreparationForML:
         enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
 
         return enaho
+
 
 
     def read_domestic_violence_cases(self):

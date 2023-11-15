@@ -26,7 +26,7 @@ dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
 freq = 'm'
 
-date = datetime.today().strftime('%Y-%m-%d')
+date = '2023-11-14' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
