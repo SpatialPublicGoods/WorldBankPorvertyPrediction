@@ -212,3 +212,6 @@ dataPathPovertyPrediction = 'J:/My Drive/PovertyPredictionRealTime/data'
 
 main(dataPathPovertyPrediction)
 
+
+district_shapefile = gpd.read_file(os.path.join(dataPathPovertyPrediction, '2_intermediate', 'fishnet_centered_2014.shp'))
+
