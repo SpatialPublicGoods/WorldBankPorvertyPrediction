@@ -2,6 +2,7 @@
 #--------------
 import os
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
@@ -40,14 +41,20 @@ ml_dataset = dpml.read_consolidated_ml_dataset()
 ml_dataset = ml_dataset.query('income_pc>0')
 
 # First pass dropping all missing values:
-ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
+ml_dataset_filtered = (ml_dataset.query('year >= 2016')
+                                .query('year < 2020')
+                                .sample(frac=1) # Random shuffle
+                                .reset_index(drop=True) # Remove index
+                                )
+
+# ml_dataset_filtered_validation = ml_dataset_filtered.sample(int(ml_dataset_filtered.shape[0] * .075))
+
+# ml_dataset_filtered = ml_dataset_filtered.loc[~ml_dataset_filtered.index.isin(ml_dataset_filtered_validation.index)]
 
 # Y = np.log(ml_dataset_filtered.loc[:,dpml.depvar])
-Y = ml_dataset_filtered.loc[:,'log_income_pc']
+Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True)
 X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] + dpml.indepvars[2:]]
-
 imputer = SimpleImputer(strategy='mean')
-
 X_imputed = imputer.fit_transform(X)
 
 
@@ -60,8 +67,12 @@ X_standardized = pd.DataFrame(X_imputed)
 X_standardized.columns = X.columns
 X_standardized['const'] = 1
 
-# imputer = SimpleImputer(strategy='mean')
-# X_numerical = imputer.fit_transform(X)
+# Split the model in validation data and train and testing data:
+Y_validation = Y.iloc[:15000]
+X_standardized_validation = X_standardized.iloc[:15000,:]
+
+Y = Y.iloc[15000:]
+X_standardized = X_standardized.iloc[15000:,:]
 
 
 #%% Start machine learning models:
@@ -105,4 +116,19 @@ elif hasattr(best_model, 'feature_importances_'):
 # Get list of important variables according to Lasso:
 X.columns[best_model.coef_[:-1] ==0]
 X.columns[best_model.coef_[:-1] !=0]
+
+
+
+
+
+# Use the best model to predict
+predicted_income = best_model.predict(X_standardized_validation)
+
+sns.histplot(predicted_income, color='red', kde=True, label='Predicted Income', stat='density')
+sns.histplot(Y_validation, color='blue', kde=True, label='True Income', stat='density')
+plt.xlim(4,12)
+plt.legend()
+plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
+plt.show()
+# Show the predictions
 
