@@ -210,7 +210,6 @@ df = df.rename(columns={
     'province'   : 'privincia',
     'district'   : 'distrito',
     'date'       : 'deaths_tot',
-
     'female'     : 'female_p',
     'male'       : 'male_p',
     'suicide'    : 'suicide_p',
@@ -224,7 +223,6 @@ df = df.rename(columns={
 #--------------
 df['female_p']  = df['female_p'].round(4)
 df['male_p']    = df['male_p'].round(4)
-
 
 # %%
 
