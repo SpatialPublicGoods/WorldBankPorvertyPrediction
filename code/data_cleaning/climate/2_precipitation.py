@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
+import seaborn as sns
+import numpy as np
 
 #--------------
 # Paths
@@ -91,7 +93,7 @@ df.loc[df['month'] == 0, 'month'] = 12
 #--------------
 # Droping
 #--------------
-#df = df.drop('Month', axis=1)
+df = df.drop('Month', axis=1)
 
 #--------------
 # Renaming
@@ -113,7 +115,7 @@ df2 = pd.merge(df_m, df, on=['conglome', 'year', 'month'], how='left', indicator
 
 # ============================
 #
-# 3. GRAPHS
+# 3. MISSING STATS
 #
 # ============================
 
@@ -127,12 +129,14 @@ df3 = df2.copy()
 #--------------
 # Cleaning
 #--------------
-
 monthly_yearly_stats = df3.groupby(['year', 'month']).agg({'_merge': lambda x: (x == 'left_only').sum()})
 monthly_yearly_stats.rename(columns={'_merge': 'missing_count'}, inplace=True)
 monthly_yearly_stats['total_count'] = df3.groupby(['year', 'month'])['_merge'].count()
 monthly_yearly_stats['missing_percentage'] = (monthly_yearly_stats['missing_count'] / monthly_yearly_stats['total_count']) * 100
 
+#--------------
+# Missings
+#--------------
 monthly_yearly_stats[monthly_yearly_stats['missing_count'] != 0]
 
 # %%
@@ -141,8 +145,96 @@ monthly_yearly_stats[monthly_yearly_stats['missing_count'] != 0]
 
 
 
+# ============================
+#
+# 4. GRAPHS: HISTOGRAMS
+#
+# ============================
+
+# %%
+
+#--------------
+# Copy
+#--------------
+df3 = df2.copy()
+
+#--------------
+# Graph
+#--------------
+
+# Unique years
+unique_years = df['year'].unique()
+unique_years.sort()
+
+# Histograms
+for year in unique_years:
+
+    df_year = df[df['year'] == year]
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(df_year['Mean'], bins=200, color='blue', alpha=0.7)
+    plt.title(f'Monthly "Mean" Precipitation distribution: {year}')
+    plt.xlabel('Mean')
+    plt.ylabel('Frequency')
+    plt.xlim(0, 600)
+    plt.show()
+
+# %%
 
 
 
 
 
+# ============================
+#
+# 5. GRAPHS: EMPIRICAL CDF
+#
+# ============================
+
+# %%
+
+#--------------
+# Copy
+#--------------
+df3 = df2.copy()
+
+#--------------
+# Graph
+#--------------
+
+# log(Mean + 1)
+df3['log_Mean'] = np.log1p(df3['Mean'])
+
+# Seaborn configuration
+sns.set(style='whitegrid')
+
+# unique years
+unique_years = df3['year'].unique()
+unique_years.sort()
+
+# Combined CDF graph figure
+plt.figure(figsize=(12, 8))
+
+# Creating CDF
+for year in unique_years:
+    sns.ecdfplot(data=df3[df3['year'] == year], x='log_Mean', label=str(year))
+
+# Title and axis labels
+plt.title('Empirical CDF of Average log(Mean+1) Precipitation per Year', fontsize=16)
+plt.xlabel('log(Mean+1)', fontsize=14)
+plt.ylabel('ECDF', fontsize=14)
+
+# Y-axis limits
+plt.ylim(0, 1.02)
+
+# Legend
+plt.legend(title='Year', title_fontsize='13', fontsize='12')
+
+# Graph
+plt.show()
+
+
+
+
+
+# %%
