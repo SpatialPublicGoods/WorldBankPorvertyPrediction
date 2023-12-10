@@ -1,6 +1,6 @@
 ##############################################
 #
-# WORKING BORN CHILDREN DATA
+# WORKING WASTES DATA
 #
 ##############################################
 
@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
+from modules.utils_general import utils_general
 
 #--------------
 # Paths
@@ -37,7 +38,7 @@ d1_path = os.path.join(main_path, '2_intermediate')
 #--------------
 # Parameters
 #--------------
-freq = 'm'
+freq = 'y'
 #%%
 
 
@@ -55,8 +56,8 @@ freq = 'm'
 #--------------
 # Opening main data
 #--------------
-file    = os.path.join(o1_path, 'registro_children6/BD_PADRON_HACKATON.csv')
-data_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
+file    = os.path.join(o1_path, 'residuos/A. Generación Anual de residuos domiciliario_Distrital_2014_2021.csv')
+data_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip', sep=";")
 
 # %%
 
@@ -83,9 +84,10 @@ df = data_df.copy()
 
 # Dictionary of matching column names & new column names
 name_mapping = {
-    'ubigeo'             : 'ubigeo',
-    'fe_nac'             : 'date',
-    'genero'             : 'gender'
+    'ubigeo'       : 'ubigeo',
+    'pob urbana'   : 'urban_pop',
+    'residuos dom' : 'wastes',
+    'periodo'      : 'year'
 }
 
 # Map function to rename old matching names with new column names
@@ -104,33 +106,6 @@ df = df.rename(columns=map_column_name)
 df = df[list(name_mapping.values())]
 
 #--------------
-# Creating variables
-#--------------
-
-### Dates
-df['date'] = pd.to_datetime(df['date'], format='%m/%d/%Y')
-
-df['day']   = df['date'].dt.day
-df['month'] = df['date'].dt.month
-df['year']  = df['date'].dt.year
-
-df.loc[(df['month'] <= 3)                     , 'quarter'] = 1
-df.loc[(df['month'] >= 4) & (df['month'] <= 6), 'quarter'] = 2
-df.loc[(df['month'] >= 7) & (df['month'] <= 9), 'quarter'] = 3
-df.loc[(df['month'] >= 10)                    , 'quarter'] = 4
-df['quarter'] = df['quarter'].astype(int)
-
-### Female dummy
-def is_female(gender_variable):
-    min_score = 80
-    if fuzz.partial_ratio("femenino", str(gender_variable).lower()) >= min_score:
-        return 1
-    else:
-        return 0
-
-df['female'] = df['gender'].apply(is_female)
-
-#--------------
 # Aggregating by ubigeo & date
 #--------------
 
@@ -147,8 +122,8 @@ agg_list = agg_map.get(freq, [])
 
 # Aggregating by aggregation list
 df = df.groupby(agg_list).agg({
-    'gender' : 'count',
-    'female' : 'mean'
+    'urban_pop' : 'sum',
+    'wastes'    : 'sum' 
 }).reset_index()
 
 #--------------
@@ -157,17 +132,11 @@ df = df.groupby(agg_list).agg({
 df = df.sort_values(by=agg_list)
 
 #--------------
-# Rounding variables
+# Creating variables
 #--------------
-df['female'] = df['female'].round(4)
-
-#--------------
-# Renaming
-#--------------
-df = df.rename(columns={
-    'gender' : 'born_tot',
-    'female' : 'female_p',
-    })
+df['wastes'] = df['wastes'].str.replace(',', '.').astype(float)
+df['wastes_m'] = df['wastes']/df['urban_pop']
+df['wastes_m']  = df['wastes_m'].round(4)
 
 # %%
 
@@ -191,7 +160,7 @@ final_df = df.copy()
 #--------------
 # Exporting final dataframe
 #--------------
-export_file = os.path.join(d1_path, 'children_born.csv')
+export_file = os.path.join(d1_path, 'wastes.csv')
 final_df.to_csv(export_file, index=False, encoding='utf-8')
 
 # %%

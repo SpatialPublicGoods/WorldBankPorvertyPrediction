@@ -1,6 +1,6 @@
 ##############################################
 #
-# WORKING BORN CHILDREN DATA
+# WORKING HOSPITALS DATA
 #
 ##############################################
 
@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
+from modules.utils_general import utils_general
 
 #--------------
 # Paths
@@ -55,7 +56,7 @@ freq = 'm'
 #--------------
 # Opening main data
 #--------------
-file    = os.path.join(o1_path, 'registro_children6/BD_PADRON_HACKATON.csv')
+file    = os.path.join(o1_path, 'hospitales/IPRESS.csv')
 data_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
 
 # %%
@@ -83,15 +84,16 @@ df = data_df.copy()
 
 # Dictionary of matching column names & new column names
 name_mapping = {
+    'institucion'        : 'type',
     'ubigeo'             : 'ubigeo',
-    'fe_nac'             : 'date',
-    'genero'             : 'gender'
+    'categoria'          : 'category',
+    'incio de actividad' : 'date'
 }
 
 # Map function to rename old matching names with new column names
 def map_column_name(name):
     best_match, score = process.extractOne(name.lower(), name_mapping.keys())
-    if score >= 80:
+    if score >= 90:
         return name_mapping[best_match]
     return name
 
@@ -108,11 +110,13 @@ df = df[list(name_mapping.values())]
 #--------------
 
 ### Dates
-df['date'] = pd.to_datetime(df['date'], format='%m/%d/%Y')
+df = df[df['date'].astype(str).str.len().isin([9, 10])]  # filtering strange dates
+df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y', errors='coerce')
+df.dropna(subset=['date'], inplace=True)
 
-df['day']   = df['date'].dt.day
+df['day'] = df['date'].dt.day
 df['month'] = df['date'].dt.month
-df['year']  = df['date'].dt.year
+df['year'] = df['date'].dt.year
 
 df.loc[(df['month'] <= 3)                     , 'quarter'] = 1
 df.loc[(df['month'] >= 4) & (df['month'] <= 6), 'quarter'] = 2
@@ -120,15 +124,39 @@ df.loc[(df['month'] >= 7) & (df['month'] <= 9), 'quarter'] = 3
 df.loc[(df['month'] >= 10)                    , 'quarter'] = 4
 df['quarter'] = df['quarter'].astype(int)
 
-### Female dummy
-def is_female(gender_variable):
+### Dummy variables
+
+# Defining dummy function
+def is_private(variable, cadena):
     min_score = 80
-    if fuzz.partial_ratio("femenino", str(gender_variable).lower()) >= min_score:
+    if fuzz.partial_ratio(cadena, str(variable).lower()) >= min_score:
         return 1
     else:
         return 0
 
-df['female'] = df['gender'].apply(is_female)
+# Private establishment
+cad = "privado"
+var = 'type'
+new = 'private'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# Category I
+cad = "i-"
+var = 'category'
+new = 'type_i'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# Category II
+cad = "ii-"
+var = 'category'
+new = 'type_ii'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# Category III
+cad = "iii-"
+var = 'category'
+new = 'type_iii'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
 
 #--------------
 # Aggregating by ubigeo & date
@@ -147,9 +175,17 @@ agg_list = agg_map.get(freq, [])
 
 # Aggregating by aggregation list
 df = df.groupby(agg_list).agg({
-    'gender' : 'count',
-    'female' : 'mean'
+    'type'     : 'count',
+    'private'  : 'mean',
+    'type_i'   : 'mean',
+    'type_ii'  : 'mean',
+    'type_iii' : 'mean' 
 }).reset_index()
+
+#--------------
+# Sorting data
+#--------------
+df = df.sort_values(by=agg_list)
 
 #--------------
 # Sorting data
@@ -159,14 +195,20 @@ df = df.sort_values(by=agg_list)
 #--------------
 # Rounding variables
 #--------------
-df['female'] = df['female'].round(4)
+df['private']  = df['private'].round(4)
+df['type_i']   = df['type_i'].round(4)
+df['type_ii']  = df['type_ii'].round(4)
+df['type_iii'] = df['type_iii'].round(4)
 
 #--------------
 # Renaming
 #--------------
 df = df.rename(columns={
-    'gender' : 'born_tot',
-    'female' : 'female_p',
+    'type'     : 'hospital_tot',
+    'private'  : 'private_p',
+    'type_i'   : 'type_i_p',
+    'type_ii'  : 'type_ii_p',
+    'type_iii' : 'type_iii_p',
     })
 
 # %%
@@ -191,7 +233,7 @@ final_df = df.copy()
 #--------------
 # Exporting final dataframe
 #--------------
-export_file = os.path.join(d1_path, 'children_born.csv')
+export_file = os.path.join(d1_path, 'hospitals.csv')
 final_df.to_csv(export_file, index=False, encoding='utf-8')
 
 # %%

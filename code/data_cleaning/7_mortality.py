@@ -1,6 +1,6 @@
 ##############################################
 #
-# WORKING BORN CHILDREN DATA
+# WORKING MORTALITY DATA
 #
 ##############################################
 
@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
+from modules.utils_general import utils_general
 
 #--------------
 # Paths
@@ -55,7 +56,7 @@ freq = 'm'
 #--------------
 # Opening main data
 #--------------
-file    = os.path.join(o1_path, 'registro_children6/BD_PADRON_HACKATON.csv')
+file    = os.path.join(o1_path, 'mortalidad/TB_SINADEF.csv')
 data_df = pd.read_csv(file, encoding='iso-8859-1', on_bad_lines='skip')
 
 # %%
@@ -83,15 +84,18 @@ df = data_df.copy()
 
 # Dictionary of matching column names & new column names
 name_mapping = {
-    'ubigeo'             : 'ubigeo',
-    'fe_nac'             : 'date',
-    'genero'             : 'gender'
+    'fecha'                  : 'date',
+    'departamento domicilio' : 'department',
+    'provincia domicilio'    : 'province',
+    'distrito domicilio'     : 'district',
+    'sexo'                   : 'sex',
+    'muerte violenta'        : 'violent_death'
 }
 
 # Map function to rename old matching names with new column names
 def map_column_name(name):
     best_match, score = process.extractOne(name.lower(), name_mapping.keys())
-    if score >= 80:
+    if score >= 90:
         return name_mapping[best_match]
     return name
 
@@ -108,11 +112,13 @@ df = df[list(name_mapping.values())]
 #--------------
 
 ### Dates
-df['date'] = pd.to_datetime(df['date'], format='%m/%d/%Y')
+df = df[df['date'].astype(str).str.len().isin([9, 10])]  # filtering strange dates
+df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y', errors='coerce')
+df.dropna(subset=['date'], inplace=True)
 
-df['day']   = df['date'].dt.day
+df['day'] = df['date'].dt.day
 df['month'] = df['date'].dt.month
-df['year']  = df['date'].dt.year
+df['year'] = df['date'].dt.year
 
 df.loc[(df['month'] <= 3)                     , 'quarter'] = 1
 df.loc[(df['month'] >= 4) & (df['month'] <= 6), 'quarter'] = 2
@@ -120,15 +126,50 @@ df.loc[(df['month'] >= 7) & (df['month'] <= 9), 'quarter'] = 3
 df.loc[(df['month'] >= 10)                    , 'quarter'] = 4
 df['quarter'] = df['quarter'].astype(int)
 
-### Female dummy
-def is_female(gender_variable):
+### Dummy variables
+
+# Defining dummy function
+def is_private(variable, cadena):
     min_score = 80
-    if fuzz.partial_ratio("femenino", str(gender_variable).lower()) >= min_score:
+    if fuzz.partial_ratio(cadena, str(variable).lower()) >= min_score:
         return 1
     else:
         return 0
+    
+# female
+cad = "f"
+var = 'sex'
+new = 'female'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
 
-df['female'] = df['gender'].apply(is_female)
+# male
+cad = "m"
+var = 'sex'
+new = 'male'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# suicide
+cad = "suicidio"
+var = 'violent_death'
+new = 'suicide'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# traffic accident
+cad = "accidente de transito"
+var = 'violent_death'
+new = 'traffic_accident'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# murder
+cad = "homicidio"
+var = 'violent_death'
+new = 'murder'
+df[new] = df[var].apply(lambda x: is_private(x, cad))
+
+# feminicide
+df.loc[  ((df['female']==1)&(df['murder']==1)), 'feminicide'] = 1
+df.loc[ ~((df['female']==1)&(df['murder']==1)), 'feminicide'] = 0
+df['feminicide'] = df['feminicide'].astype(int)
 
 #--------------
 # Aggregating by ubigeo & date
@@ -136,10 +177,10 @@ df['female'] = df['gender'].apply(is_female)
 
 # Map for aggregation list
 agg_map = {
-    'd': ['ubigeo', 'year', 'quarter', 'month', 'day'],
-    'm': ['ubigeo', 'year', 'quarter', 'month'],
-    'q': ['ubigeo', 'year', 'quarter'],
-    'y': ['ubigeo', 'year']
+    'd': ['department', 'province', 'district', 'year', 'quarter', 'month', 'day'],
+    'm': ['department', 'province', 'district', 'year', 'quarter', 'month'],
+    'q': ['department', 'province', 'district', 'year', 'quarter'],
+    'y': ['department', 'province', 'district', 'year']
 }
 
 # Defining aggregation list
@@ -147,8 +188,13 @@ agg_list = agg_map.get(freq, [])
 
 # Aggregating by aggregation list
 df = df.groupby(agg_list).agg({
-    'gender' : 'count',
-    'female' : 'mean'
+    'date'       : 'count',
+    'female'     : 'mean',
+    'male'       : 'mean',
+    'suicide'    : 'mean',
+    'traffic_accident'   : 'mean',
+    'murder'     : 'mean',
+    'feminicide' : 'mean',
 }).reset_index()
 
 #--------------
@@ -157,17 +203,55 @@ df = df.groupby(agg_list).agg({
 df = df.sort_values(by=agg_list)
 
 #--------------
-# Rounding variables
-#--------------
-df['female'] = df['female'].round(4)
-
-#--------------
 # Renaming
 #--------------
 df = df.rename(columns={
-    'gender' : 'born_tot',
-    'female' : 'female_p',
+    'department' : 'region',
+    'province'   : 'privincia',
+    'district'   : 'distrito',
+    'date'       : 'deaths_tot',
+    'female'     : 'female_p',
+    'male'       : 'male_p',
+    'suicide'    : 'suicide_p',
+    'traffic_accident'  : 'traffic_accident_p',
+    'murder'     : 'murder_p',
+    'feminicide' : 'feminicide_p'
     })
+
+#--------------
+# Rounding variables
+#--------------
+df['female_p']  = df['female_p'].round(4)
+df['male_p']    = df['male_p'].round(4)
+
+# %%
+
+
+
+
+
+
+
+
+# %%
+df2 = df.copy()
+
+#--------------
+# Recovering ubigeo
+#--------------
+
+utils = utils_general()
+
+df2 = utils.input_ubigeo_to_dataframe(df2, ['region', 'provincia', 'distrito'])
+
+
+
+
+
+
+
+
+
 
 # %%
 
@@ -191,7 +275,7 @@ final_df = df.copy()
 #--------------
 # Exporting final dataframe
 #--------------
-export_file = os.path.join(d1_path, 'children_born.csv')
+export_file = os.path.join(d1_path, 'hospitals.csv')
 final_df.to_csv(export_file, index=False, encoding='utf-8')
 
 # %%
