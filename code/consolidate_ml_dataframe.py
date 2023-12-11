@@ -31,7 +31,10 @@ class DataPreparationForML:
         self.police_reports = 'delitos_distrito_comisaria_clean_panel.csv'
         self.domestic_violence = 'domestic_violence.csv'
         self.cargo_vehicles = 'cargo_vehicles.csv'
-
+        self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
+        self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
+        self.precipitation = '1_raw/peru/big_data/other/clima/Precipitation_V02.csv'
+        self.panel_conglomerates = '1_raw/peru/data/conglomerado_centroidehogaresporconglomerado_2013-2021.csv' 
 
         # 3. define other parameters:
 
@@ -223,6 +226,184 @@ class DataPreparationForML:
         return cargo_vehicles
 
 
+
+    def read_precipitation(self):
+
+        """
+        This function reads the precipitation data and returns a dataframe with the following variables:s
+        """
+
+        #--------------
+        # Opening main data
+        #--------------
+        df = pd.read_csv(os.path.join(self.dataPath, self.precipitation), encoding='iso-8859-1', on_bad_lines='skip')
+
+        #--------------
+        # Creating variables
+        #--------------
+        # year
+        df['year'] = ((df['Month'] - 1) // 12) + 2013
+
+        # month
+        df['month'] = df['Month'] % 12
+        df.loc[df['month'] == 0, 'month'] = 12
+
+        #--------------
+        # Droping
+        #--------------
+
+        precipitation = df.copy() 
+        precipitation = precipitation.drop('Month', axis=1)
+
+        #--------------
+        # Renaming
+        #--------------
+        precipitation.rename(columns={'Conglomerado ID': 'conglome'}, inplace=True)
+
+        precipitation.columns = [col  
+                                 if col in ['conglome','year','month'] 
+                                 else col + '_precipitation' 
+                                 for col in precipitation.columns
+                                 ]
+
+
+        return precipitation
+    
+
+
+
+    def read_min_temperature(self):
+
+        """
+        This function reads the precipitation data and returns a dataframe with the following variables:s
+        """
+
+        #--------------
+        # Opening main data
+        #--------------
+        df = pd.read_csv(os.path.join(self.dataPath, self.temperature_min), encoding='iso-8859-1', on_bad_lines='skip')
+
+        #--------------
+        # Creating variables
+        #--------------
+        # year
+        df['year'] = ((df['Month'] - 1) // 12) + 2013
+
+        # month
+        df['month'] = df['Month'] % 12
+        df.loc[df['month'] == 0, 'month'] = 12
+
+        #--------------
+        # Droping
+        #--------------
+
+        t_min = df.copy() 
+        t_min = t_min.drop('Month', axis=1)
+
+        #--------------
+        # Renaming
+        #--------------
+        t_min.rename(columns={'Conglomerado ID': 'conglome'}, inplace=True)
+
+        t_min.columns = [col  
+                            if col in ['conglome','year','month'] 
+                            else col + '_temperature_min' 
+                            for col in t_min.columns
+                            ]
+
+
+        return t_min
+    
+    
+    def read_max_temperature(self):
+
+        """
+        This function reads the precipitation data and returns a dataframe with the following variables:s
+        """
+
+        #--------------
+        # Opening main data
+        #--------------
+        df = pd.read_csv(os.path.join(self.dataPath, self.temperature_max), encoding='iso-8859-1', on_bad_lines='skip')
+
+        #--------------
+        # Creating variables
+        #--------------
+        # year
+        df['year'] = ((df['Month'] - 1) // 12) + 2013
+
+        # month
+        df['month'] = df['Month'] % 12
+        df.loc[df['month'] == 0, 'month'] = 12
+
+        #--------------
+        # Droping
+        #--------------
+
+        t_max = df.copy() 
+        t_max = t_max.drop('Month', axis=1)
+
+        #--------------
+        # Renaming
+        #--------------
+        t_max.rename(columns={'Conglomerado ID': 'conglome'}, inplace=True)
+
+        t_max.columns = [col  
+                            if col in ['conglome','year','month'] 
+                            else col + '_temperature_max' 
+                            for col in t_max.columns
+                            ]
+
+
+        return t_max    
+
+    def read_conglome_clusters(self):
+
+        """
+        This function reads the conglome clusters and returns a dataframe with the following variables:
+        """
+
+        df = pd.read_csv(os.path.join(self.dataPath, self.panel_conglomerates), encoding='iso-8859-1', on_bad_lines='skip')
+
+        #--------------
+        # Cleaning column names
+        #--------------
+
+        # Dictionary of matching column names & new column names
+        name_mapping = {
+            'conglome' : 'conglome',
+            'ubigeo'   : 'ubigeo',
+            'mes'      : 'month',
+            'ano'      : 'year'
+        }
+
+        # Map function to rename old matching names with new column names
+        # Applying the map function to rename variables based on the dictionary
+        df = df.rename(columns=name_mapping)
+
+        #--------------
+        # Filtering columns
+        #--------------
+        df = df[list(name_mapping.values())]
+
+        #--------------
+        # Dropping duplicates
+        #--------------
+        conglomerates = df.drop_duplicates().copy()
+
+
+        return conglomerates
+
+
+        # #--------------
+        # # Merging
+        # #--------------
+        # file_m = os.path.join(self.dataPath, self.precipitation)
+        # df_m   = pd.read_csv(file_m, encoding='iso-8859-1', on_bad_lines='skip')
+
+        # df2 = pd.merge(df_m, df, on=['conglome', 'year', 'month'], how='left', indicator=True)
+
+
     def read_consolidated_ml_dataset(self):
 
         """
@@ -259,13 +440,23 @@ if __name__ == '__main__':
 
     cargo_vehicles = dpml.read_cargo_vehicles()
 
+    precipitation = dpml.read_precipitation()
+    
+    max_temperature = dpml.read_max_temperature()
+    
+    min_temperature = dpml.read_min_temperature()
 
+    # Merge data:
     ml_dataset = (enaho.merge(police_reports_by_ubigeo, on=['ubigeo', 'year'], how='left')
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
+                        .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
+                        .merge(max_temperature, on=['conglome', 'year', 'month'], how='left')
+                        .merge(min_temperature, on=['conglome', 'year', 'month'], how='left')
                         )
 
 
     ml_dataset.to_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + date +'.csv'))
+
 
 
