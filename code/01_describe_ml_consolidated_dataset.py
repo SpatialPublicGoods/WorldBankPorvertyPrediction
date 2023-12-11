@@ -13,7 +13,7 @@ dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 freq = 'm'
 
 # date = datetime.today().strftime('%Y-%m-%d')
-date = '2023-11-14' #datetime.today().strftime('%Y-%m-%d')
+date = '2023-12-11' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -30,6 +30,8 @@ ml_dataset_filtered = ml_dataset.query('year >= 2016').query('year < 2020')
 Y = ml_dataset_filtered.loc[:,'log_income_pc']
 
 X = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars]
+
+
 
 numerical_descriptive_stats = X.describe()
 

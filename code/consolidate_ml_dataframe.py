@@ -59,13 +59,29 @@ class DataPreparationForML:
                                         'Public_Order_Political_Crimes', 'Public_Safety_Health',
                                         'Sexual_Offenses', 'Theft_Robbery_Related_Crimes', 'Violence_Homicide']
 
+        self.indepvar_precipitation =   ['Min_precipitation', 'Max_precipitation', 'Mean_precipitation',
+                                            'Std_precipitation', 'Median_precipitation', 'Range_precipitation']
+
+        self.indepvar_temperature_max =   ['Min_temperature_max', 'Max_temperature_max', 'Mean_temperature_max',
+                                            'Std_temperature_max', 'Median_temperature_max', 'Range_temperature_max']        
+
+        self.indepvar_temperature_min =   ['Min_temperature_min', 'Max_temperature_min', 'Mean_temperature_min', 
+                                           'Std_temperature_min', 'Median_temperature_min', 'Range_temperature_min']        
+
         self.indepvar_domestic_violence = ['cases_tot']
 
         self.indepvar_cargo_vehicles = ['vehicles_tot', 'fab_5y_p', 'fab_10y_p', 'fab_20y_p',
             'fab_30y_p', 'pub_serv_p', 'payload_m', 'dry_weight_m',
             'gross_weight_m', 'length_m', 'width_m', 'height_m']
 
-        self.indepvars = self.indepvar_enaho + self.indepvar_police_reports + self.indepvar_domestic_violence + self.indepvar_cargo_vehicles
+        self.indepvars = (self.indepvar_enaho + 
+                          self.indepvar_police_reports + 
+                          self.indepvar_domestic_violence + 
+                          self.indepvar_cargo_vehicles)
+        
+        self.indepvars_weather = (self.indepvar_precipitation +
+                                    self.indepvar_temperature_max +
+                                    self.indepvar_temperature_min)
 
 
     def read_enaho_panel(self):
