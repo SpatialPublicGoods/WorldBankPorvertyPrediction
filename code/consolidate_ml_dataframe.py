@@ -20,6 +20,8 @@ class DataPreparationForML:
         self.dataPath = dataPath
 
         # define paths:
+        self.raw = '1_raw'
+
         self.working = '3_working'
 
         self.clean = '4_clean'
@@ -27,6 +29,7 @@ class DataPreparationForML:
         # 2. define file names: 
 
         self.enaho = 'income.csv'
+        self.enaho_sedlac = 'enaho_sedlac_pool_household.csv'
         self.domestic_violence = 'domestic_violence.csv'
         self.police_reports = 'delitos_distrito_comisaria_clean_panel.csv'
         self.domestic_violence = 'domestic_violence.csv'
@@ -49,7 +52,7 @@ class DataPreparationForML:
         
 
         # 5. define independent variables:
-        self.indepvar_enaho = ['income_pc_lagged','spend_pc_lagged']
+        self.indepvar_enaho = ['income_pc_lagged']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
                                         'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
@@ -153,6 +156,64 @@ class DataPreparationForML:
 
         return enaho
 
+
+    def read_enaho_sedlac(self):
+
+        """
+        This function reads the enaho panel data and returns a dataframe with the following variables:
+        
+        - ubigeo: district code
+        - year: year of the survey
+        - month: month of the survey
+        - conglome: conglomerate number
+        - mieperho: number of individuals in the household
+        - ingmo1hd: household income
+        - gashog1d: household expenditure
+        - income_pc: household income per capita
+        - log_income_pc: log of household income per capita
+        - spend_pc: household expenditure per capita
+        - log_spend_pc: log of household expenditure per capita
+        - income_pc_lagged: lagged income per capita
+        - spend_pc_lagged: lagged expenditure per capita
+
+        """
+
+
+        # Read csv
+        enaho = pd.read_csv(os.path.join(self.dataPath, 
+                                         self.working, 
+                                         self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
+
+        # Manipulate identificator variables:
+        enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
+        enaho['year'] = enaho['year']
+
+        # Get sum of income and individuals at the conglome:
+        enaho_conglome = enaho.groupby(['ubigeo','conglome', 'year']).sum().reset_index()
+        
+        # Compute income per capita (dependent variable):
+        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
+
+        # Compute income per capita:
+        enaho_conglome['log_income_pc'] = np.log(enaho_conglome['income_pc']+0.1)
+
+        # Get lagged income_pc
+        enaho_conglome['income_pc_lagged'] = enaho_conglome.groupby('conglome')['income_pc'].shift(1)
+
+        enaho_conglome['log_income_pc_lagged'] = enaho_conglome.groupby('conglome')['log_income_pc'].shift(1)
+
+        enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
+                        .loc[:, ['ubigeo',
+                                 'conglome',
+                                 'year',
+                                 'log_income_pc_lagged',
+                                 'income_pc_lagged']]
+                        )
+        
+        # Get conglome data to enaho:
+        enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left').rename(columns={'mes':'month'})
+
+        return enaho
 
 
     def read_domestic_violence_cases(self):
@@ -440,7 +501,8 @@ if __name__ == '__main__':
 
     # Load data:
 
-    enaho = dpml.read_enaho_panel()
+    # enaho = dpml.read_enaho_panel()
+    enaho = dpml.read_enaho_sedlac()
 
     domestic_violence = dpml.read_domestic_violence_cases()
 
@@ -465,6 +527,10 @@ if __name__ == '__main__':
 
 
     ml_dataset.to_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + date +'.csv'))
+
+
+
+
 
 
 
