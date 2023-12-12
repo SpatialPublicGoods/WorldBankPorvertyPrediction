@@ -31,6 +31,8 @@ Y = ml_dataset_filtered.loc[:,'log_income_pc']
 
 X = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars]
 
+X_weather = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars_weather]
+
 
 
 numerical_descriptive_stats = X.describe()
@@ -119,6 +121,37 @@ for i, col in enumerate(X.columns):
 plt.savefig('../figures/correlation_ml_dataset_variables.pdf', bbox_inches='tight')
 # plt.show()
 
+
+
+
+
+# 3. Correlations between weather variables and outcome: 
+
+# Define the grid size for the subplot
+n_rows = 5
+n_cols = 4
+
+# Create a figure with subplots
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))  # Adjust the figure size as needed
+fig.tight_layout(pad=5.0)  # Adjust the spacing between subplots as needed
+
+# Loop over the variables in X and create a binscatter plot for each
+for i, col in enumerate(X_weather.columns):
+    
+    # Find the position of the subplot
+    row_num = i // n_cols
+    col_num = i % n_cols
+    
+    # Create binscatter plot for numerical data
+    if X_weather[col].dtype in ['int64', 'float64']:
+
+        # Plot the binscatter plot
+        sns.regplot(x=np.log(X_weather[col] + 1), y=Y, ax=axes[row_num, col_num],
+                    scatter_kws={'alpha':0.5}, line_kws={"color": "red"}, x_ci=None, x_bins=20)
+        axes[row_num, col_num].set_title(f'')
+
+# plt.savefig('../figures/correlation_ml_dataset_weather_variables.pdf', bbox_inches='tight')
+plt.show()
 
 # 4. Get share of missing values in each variable:
 

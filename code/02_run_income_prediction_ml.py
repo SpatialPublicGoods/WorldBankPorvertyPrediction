@@ -27,7 +27,7 @@ dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
 freq = 'm'
 
-date = '2023-11-14' #datetime.today().strftime('%Y-%m-%d')
+date = '2023-12-11' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -53,7 +53,11 @@ ml_dataset_filtered = (ml_dataset.query('year >= 2016')
 
 # Y = np.log(ml_dataset_filtered.loc[:,dpml.depvar])
 Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True)
-X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] + dpml.indepvars[2:]]
+# X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] + dpml.indepvars[2:]]
+X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] + dpml.indepvars[2:] + dpml.indepvars_weather]
+# X = ml_dataset_filtered.loc[:,['log_income_pc_lagged', 'log_spend_pc_lagged'] +  dpml.indepvars_weather]
+X[dpml.indepvars_weather] = np.log(X[dpml.indepvars_weather] + 1)
+
 imputer = SimpleImputer(strategy='mean')
 X_imputed = imputer.fit_transform(X)
 
@@ -128,7 +132,7 @@ sns.histplot(predicted_income, color='red', kde=True, label='Predicted Income', 
 sns.histplot(Y_validation, color='blue', kde=True, label='True Income', stat='density')
 plt.xlim(4,12)
 plt.legend()
-plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
+# plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
 plt.show()
 # Show the predictions
 
