@@ -38,29 +38,38 @@ dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 
 ml_dataset = dpml.read_consolidated_ml_dataset()
 
+def filter_ml_dataset(ml_dataset):
 
-ml_dataset = ml_dataset.query('income_pc>0')
+    ml_dataset = ml_dataset.query('income_pc>0')
 
-# First pass dropping all missing values:
-ml_dataset_filtered = (ml_dataset.query('year >= 2016')
-                                .query('year < 2020')
-                                .sample(frac=1) # Random shuffle
-                                .reset_index(drop=True) # Remove index
-                                )
+    # First pass dropping all missing values:
+    ml_dataset_filtered = (ml_dataset.query('year >= 2016')
+                                    .query('year < 2020')
+                                    .sample(frac=1) # Random shuffle
+                                    .reset_index(drop=True) # Remove index
+                                    )
 
-ml_dataset_filtered['count_people'] = 1
+    ml_dataset_filtered['count_people'] = 1
 
-conglome_count = ml_dataset_filtered.groupby(['conglome','year']).count().reset_index().loc[:,['conglome','year','count_people']]
+    conglome_count = ml_dataset_filtered.groupby(['conglome','year']).count().reset_index().loc[:,['conglome','year','count_people']]
 
-conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count')['year']
+    conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count')['year']
 
-ml_dataset_filtered = ml_dataset_filtered.loc[ml_dataset_filtered['conglome'].isin(conglome_count.query('count==4').conglome.unique()),:]
+    ml_dataset_filtered = ml_dataset_filtered.loc[ml_dataset_filtered['conglome'].isin(conglome_count.query('count==4').conglome.unique()),:]
 
+    ml_dataset_filtered = ml_dataset_filtered.dropna(subset='income_pc_lagged').reset_index(drop=True)
+
+    return ml_dataset_filtered
+
+
+ml_dataset_filtered = filter_ml_dataset(ml_dataset)
+
+indepvar_column_names = ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather
 
 # Define dependent and independent variables:
 Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True) # X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + dpml.indepvars[2:]]
 X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather]
-X[dpml.indepvars_weather] = np.log(X[dpml.indepvars_weather] + 1)
+X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
 
 # Step 1: Impute missing values
 imputer = SimpleImputer(strategy='mean')
@@ -84,7 +93,7 @@ month_dummies = pd.get_dummies(ml_dataset_filtered['month'], prefix='month', dro
 X_standardized = pd.concat([X_standardized, ubigeo_dummies.astype(int), month_dummies.astype(int)], axis=1)
 
 # Step 6: Create interaction terms:
-variables_to_interact = ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather
+variables_to_interact = ['log_income_pc_lagged'] + dpml.indepvars[2:] + dpml.indepvars_weather
 
 # Create interaction terms
 for var in variables_to_interact:
@@ -107,8 +116,8 @@ X_standardized_train = X_standardized.iloc[validation_sample_size:,:]
 # define the models to test in a dictionary: including the hyperparameters to test
 
 models = {
-    "Linear Regression": (LinearRegression(), {}),
-    "Lasso": (Lasso(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
+    # "Linear Regression": (LinearRegression(), {}),
+    "Lasso": (Lasso(), {'alpha': [0.01, 0.1, 1, 10]}),
     # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
     # "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
@@ -142,8 +151,9 @@ elif hasattr(best_model, 'feature_importances_'):
 #%% Get list of important variables according to Lasso:
 
 X_standardized_train.columns[best_model.coef_ ==0]
-X_standardized_train.columns[best_model.coef_ !=0].shape
 
+
+# Get both the coefficients values and names 
 lasso_coefs = best_model.coef_  # Replace with your actual coefficients
 feature_names = X_standardized_train.columns  # Replace with your actual feature names
 
@@ -183,58 +193,85 @@ plt.xticks(rotation=90,fontsize=8)
 plt.yticks(rotation=0,fontsize=8)
 plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
 plt.show()
+plt.clf()
 
 #%%
-# Use the best model to predict
-predicted_income = best_model.predict(X_standardized)
+# Use the best model to predict (LASSO REGRESSION)
 
-sns.histplot(predicted_income, color='red', kde=True, label='Predicted Income', stat='density')
+predicted_income_train = best_model.predict(X_standardized_train)
+
+sns.histplot(predicted_income_train, color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(Y_standardized_train, color='blue', kde=True, label='True Income', stat='density')
-# plt.xlim(4,12)
 plt.legend()
-# plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
 plt.show()
-# Show the predictions
-
 
 # Use the best model to predict
-predicted_income = best_model.predict(X_standardized_validation)
+predicted_income_validation = best_model.predict(X_standardized_validation)
 
-sns.histplot(predicted_income, color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(Y_standardized_validation*best_model.predict(X_standardized).std()/Y_standardized_validation.std(), color='blue', kde=True, label='True Income', stat='density')
-# plt.xlim(4,12)
-plt.legend()
-# plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
-plt.show()
-# Show the predictions
-
-
-
-
-# Use the best model to predict
-predicted_income_adjusted = predicted_income*Y_standardized_train.std()/best_model.predict(X_standardized).std()
-
-sns.histplot(predicted_income_adjusted, color='red', kde=True, label='Predicted Income', stat='density')
+sns.histplot(predicted_income_validation, color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(Y_standardized_validation, color='blue', kde=True, label='True Income', stat='density')
-# plt.xlim(4,12)
 plt.legend()
-# plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
 plt.show()
-# Show the predictions
 
+
+#%% Use features choosen by Lasso to predict income using Gradient Boosting:
+
+XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model.coef_ !=0]]
+XGB_standardized_validation =  X_standardized_validation[X_standardized_train.columns[best_model.coef_ !=0]]
+XGB_standardized_train['const'] = 1
+XGB_standardized_validation['const'] = 1
+
+
+models = {
+    # "Linear Regression": (LinearRegression(), {}),
+    # "Lasso": (Lasso(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
+    # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
+    # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
+    "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [150, 200, 250, 300, 350, 400], 'learning_rate': [0.2, 0.5]})
+}
+
+
+n_folds = 5
+# Dictionary to store grid search results
+grid_search_results = {}
+
+# Perform grid search with cross-validation for each model
+for model_name, (model, params) in models.items():
+    grid_search = GridSearchCV(model, params, cv=5, scoring='neg_mean_squared_error', return_train_score=True, n_jobs=4)
+    grid_search.fit(XGB_standardized_train, Y_standardized_train)
+    grid_search_results[model_name] = grid_search
+
+# Print the best parameters and corresponding RMSE for each model
+for model_name, results in grid_search_results.items():
+    best_rmse = np.sqrt(-results.best_score_)
+    print(f"{model_name}: Best Params: {results.best_params_}, Best RMSE: {best_rmse:.3f}")
+
+
+
+best_model_grid_search = grid_search_results['Gradient Boosting']
+best_model = best_model_grid_search.best_estimator_
+if hasattr(best_model, 'coef_'):
+    print(f"Coefficients of the best model ({'Lasso'}): {best_model.coef_}")
+elif hasattr(best_model, 'feature_importances_'):
+    print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
+
+
+
+#%%
+# Use the best model to predict (GRADIENT BOOSTING REGRESSION)
+
+predicted_income_train = best_model.predict(X_standardized_train)
+
+sns.histplot(predicted_income_train, color='red', kde=True, label='Predicted Income', stat='density')
+sns.histplot(Y_standardized_train, color='blue', kde=True, label='True Income', stat='density')
+plt.legend()
+plt.show()
 
 # Use the best model to predict
-sns.histplot(ml_dataset_filtered.loc[:validation_sample_size,'income_pc'], color='green', kde=True, label='Income', stat='density', bins=300) 
-sns.histplot(np.exp(predicted_income_adjusted * Y.std() + Y.mean()) - 1, color='red', kde=True, label='Predicted Income', stat='density', bins=300)
-plt.xlim(-1,2500)
+predicted_income_validation = best_model.predict(X_standardized_validation)
+
+sns.histplot(predicted_income_validation, color='red', kde=True, label='Predicted Income', stat='density')
+sns.histplot(Y_standardized_validation, color='blue', kde=True, label='True Income', stat='density')
 plt.legend()
-# plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
+plt.savefig('../figures/prediction_vs_true_distribution_gradient_boosting.pdf', bbox_inches='tight')
 plt.show()
-# Show the predictions
-
-
-
-plt.hist(pd.Series(predicted_income_adjusted)-Y_standardized_validation, bins=100, color='red')
-plt.hist(pd.Series(predicted_income)-Y_standardized_validation, bins=100, color='blue')
-plt.show()
-
