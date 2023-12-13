@@ -113,11 +113,9 @@ X_standardized_train = X_standardized.iloc[validation_sample_size:,:]
 
 #%% Start machine learning models:
 
-# define the models to test in a dictionary: including the hyperparameters to test
-
 models = {
     # "Linear Regression": (LinearRegression(), {}),
-    "Lasso": (Lasso(), {'alpha': [0.01, 0.1, 1, 10]}),
+    "Lasso": (Lasso(), {'alpha': [0.0001, 0.001, 0.01, 0.1]}),
     # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
     # "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
@@ -191,7 +189,7 @@ plt.ylabel('Categories (including Non-Interaction)')
 plt.xlabel('Variables')
 plt.xticks(rotation=90,fontsize=8)
 plt.yticks(rotation=0,fontsize=8)
-plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
+# plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
 plt.show()
 plt.clf()
 
