@@ -26,6 +26,8 @@ from sklearn.preprocessing import StandardScaler
 # Parameters
 dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
+dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+
 freq = 'm'
 
 date = '2023-12-12' #datetime.today().strftime('%Y-%m-%d')
@@ -102,7 +104,7 @@ for var in variables_to_interact:
         X_standardized[f"{var}_x_{dummy}"] = interaction_term
 
 
-# Step 6: Split the model in validation data and train and testing data:
+# Step 7: Split the model in validation data and train and testing data:
 validation_sample_size = 5000
 Y_standardized_validation = Y_standardized.iloc[:validation_sample_size]
 X_standardized_validation = X_standardized.iloc[:validation_sample_size,:]
@@ -115,7 +117,7 @@ X_standardized_train = X_standardized.iloc[validation_sample_size:,:]
 
 models = {
     # "Linear Regression": (LinearRegression(), {}),
-    "Lasso": (Lasso(), {'alpha': [0.0001, 0.001, 0.01, 0.1]}),
+    "Lasso": (Lasso(), {'alpha': [0.0001, 0.001, 0.01, 0.1, 10, 100]}),
     # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
     # "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
@@ -148,7 +150,7 @@ elif hasattr(best_model, 'feature_importances_'):
 
 #%% Get list of important variables according to Lasso:
 
-X_standardized_train.columns[best_model.coef_ ==0]
+print(X_standardized_train.columns[best_model.coef_ !=0].shape)
 
 
 # Get both the coefficients values and names 
@@ -189,7 +191,7 @@ plt.ylabel('Categories (including Non-Interaction)')
 plt.xlabel('Variables')
 plt.xticks(rotation=90,fontsize=8)
 plt.yticks(rotation=0,fontsize=8)
-# plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
+plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
 plt.show()
 plt.clf()
 
@@ -197,10 +199,10 @@ plt.clf()
 # Use the best model to predict (LASSO REGRESSION)
 
 predicted_income_train = best_model.predict(X_standardized_train)
-
 sns.histplot(predicted_income_train, color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(Y_standardized_train, color='blue', kde=True, label='True Income', stat='density')
 plt.legend()
+plt.savefig('../figures/prediction_vs_true_distribution_lasso_training.pdf', bbox_inches='tight')
 plt.show()
 
 # Use the best model to predict
@@ -209,6 +211,7 @@ predicted_income_validation = best_model.predict(X_standardized_validation)
 sns.histplot(predicted_income_validation, color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(Y_standardized_validation, color='blue', kde=True, label='True Income', stat='density')
 plt.legend()
+plt.savefig('../figures/prediction_vs_true_distribution_lasso_validation.pdf', bbox_inches='tight')
 plt.show()
 
 
@@ -225,7 +228,7 @@ models = {
     # "Lasso": (Lasso(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
-    "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [150, 200, 250, 300, 350, 400], 'learning_rate': [0.2, 0.5]})
+    "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [150, 200, 250, 300, 350, 400], 'learning_rate': [0.1, 0.2, 0.5]})
 }
 
 
@@ -235,7 +238,7 @@ grid_search_results = {}
 
 # Perform grid search with cross-validation for each model
 for model_name, (model, params) in models.items():
-    grid_search = GridSearchCV(model, params, cv=5, scoring='neg_mean_squared_error', return_train_score=True, n_jobs=4)
+    grid_search = GridSearchCV(model, params, cv=5, scoring='neg_mean_squared_error', return_train_score=True, n_jobs=8)
     grid_search.fit(XGB_standardized_train, Y_standardized_train)
     grid_search_results[model_name] = grid_search
 
