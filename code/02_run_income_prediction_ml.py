@@ -57,10 +57,6 @@ conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count'
 ml_dataset_filtered = ml_dataset_filtered.loc[ml_dataset_filtered['conglome'].isin(conglome_count.query('count==4').conglome.unique()),:]
 
 
-# ml_dataset_filtered_validation = ml_dataset_filtered.sample(int(ml_dataset_filtered.shape[0] * .075))
-
-# ml_dataset_filtered = ml_dataset_filtered.loc[~ml_dataset_filtered.index.isin(ml_dataset_filtered_validation.index)]
-
 # Define dependent and independent variables:
 Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True) # X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + dpml.indepvars[2:]]
 X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather]
@@ -143,18 +139,52 @@ if hasattr(best_model, 'coef_'):
 elif hasattr(best_model, 'feature_importances_'):
     print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
 
-
-# Get list of important variables according to Lasso:
-X_standardized_train.columns[best_model.coef_[:-1] ==0]
-X_standardized_train.columns[best_model.coef_[:-1] !=0]
+#%% Get list of important variables according to Lasso:
 
 X_standardized_train.columns[best_model.coef_ ==0]
 X_standardized_train.columns[best_model.coef_ !=0].shape
 
+lasso_coefs = best_model.coef_  # Replace with your actual coefficients
+feature_names = X_standardized_train.columns  # Replace with your actual feature names
 
+# Separate the base variables and interaction terms
+base_vars = [f for f in feature_names if '_x_ubigeo_' not in f]
+interaction_terms = [f for f in feature_names if '_x_ubigeo_' in f]
 
+# Get unique categories from the interaction terms
+categories = list(set(term.split('_x_ubigeo_')[1] for term in interaction_terms))
+categories.sort(key=lambda x: int(x.split('-')[1]))  # Sort categories by the numerical part if necessary
 
+# Create a DataFrame to store the coefficients
+coef_matrix = pd.DataFrame(index=categories + ['Non-Interaction'], columns=base_vars)
 
+# Assign the non-interaction term coefficients
+for var in base_vars:
+    coef_matrix.loc['Non-Interaction', var] = lasso_coefs[list(feature_names).index(var)]
+
+# Assign the interaction term coefficients
+for term in interaction_terms:
+    var, category = term.split('_x_ubigeo_')
+    coef_matrix.loc[category, var] = lasso_coefs[interaction_terms.index(term)]
+
+# Replace NaN with 0 if there are any interaction terms missing for certain categories
+coef_matrix.fillna(0, inplace=True)
+
+# Plot the heatmap:
+cmap = sns.light_palette("blue", as_cmap=True)
+mask = coef_matrix.astype(float) == 0
+plt.figure(figsize=(20, 10))  # Adjust figure size as needed
+sns.heatmap(np.abs(coef_matrix.astype(float)), cmap=cmap, annot=False, mask=mask, 
+            linewidths=0.1, linecolor='black')
+plt.title('Lasso Coefficients Heatmap')
+plt.ylabel('Categories (including Non-Interaction)')
+plt.xlabel('Variables')
+plt.xticks(rotation=90,fontsize=8)
+plt.yticks(rotation=0,fontsize=8)
+plt.savefig('../figures/variable_contribution_lasso_regression.pdf', bbox_inches='tight')
+plt.show()
+
+#%%
 # Use the best model to predict
 predicted_income = best_model.predict(X_standardized)
 
@@ -201,3 +231,10 @@ plt.legend()
 # plt.savefig('../figures/prediction_vs_truth_log_income.pdf', bbox_inches='tight')
 plt.show()
 # Show the predictions
+
+
+
+plt.hist(pd.Series(predicted_income_adjusted)-Y_standardized_validation, bins=100, color='red')
+plt.hist(pd.Series(predicted_income)-Y_standardized_validation, bins=100, color='blue')
+plt.show()
+
