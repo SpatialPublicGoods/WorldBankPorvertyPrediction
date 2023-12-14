@@ -16,7 +16,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-
+from joblib import Parallel, delayed
 
 
 
@@ -113,7 +113,7 @@ Y_standardized_train = Y_standardized.iloc[validation_sample_size:]
 X_standardized_train = X_standardized.iloc[validation_sample_size:,:]
 
 
-#%% Start machine learning models:
+#%% Start machine learning models (No weighting of observations):
 
 models = {
     # "Linear Regression": (LinearRegression(), {}),
@@ -147,6 +147,12 @@ if hasattr(best_model, 'coef_'):
     print(f"Coefficients of the best model ({'Lasso'}): {best_model.coef_}")
 elif hasattr(best_model, 'feature_importances_'):
     print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
+
+
+#%% Start machine learning models (Weighting observations):
+
+
+
 
 #%% Get list of important variables according to Lasso:
 
@@ -238,7 +244,12 @@ grid_search_results = {}
 
 # Perform grid search with cross-validation for each model
 for model_name, (model, params) in models.items():
-    grid_search = GridSearchCV(model, params, cv=5, scoring='neg_mean_squared_error', return_train_score=True, n_jobs=8)
+    grid_search = GridSearchCV(model, 
+                               params, 
+                               cv=5, 
+                               scoring='neg_mean_squared_error', 
+                               return_train_score=True, 
+                               n_jobs=8)
     grid_search.fit(XGB_standardized_train, Y_standardized_train)
     grid_search_results[model_name] = grid_search
 
