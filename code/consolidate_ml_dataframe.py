@@ -79,7 +79,7 @@ class DataPreparationForML:
 
         self.indepvars = (self.indepvar_enaho + 
                           self.indepvar_police_reports + 
-                          self.indepvar_domestic_violence + 
+                        #   self.indepvar_domestic_violence + 
                           self.indepvar_cargo_vehicles)
         
         self.indepvars_weather = (self.indepvar_precipitation +

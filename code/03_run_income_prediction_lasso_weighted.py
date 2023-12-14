@@ -47,8 +47,8 @@ ml_dataset = dpml.read_consolidated_ml_dataset()
 ml_dataset = ml_dataset.query('income_pc>0')
 
 # First pass dropping all missing values:
-ml_dataset_filtered = (ml_dataset.query('year >= 2016')
-                                .query('year < 2020')
+ml_dataset_filtered = (ml_dataset.query('year >= 2013')
+                                .query('year <= 2018')
                                 .sample(frac=1) # Random shuffle
                                 .reset_index(drop=True) # Remove index
                                 )
@@ -116,7 +116,7 @@ X_standardized_train = X_standardized.iloc[validation_sample_size:,:]#.reset_ind
 lasso = Lasso()
 
 # Define the parameter grid
-param_grid = {'alpha': [0.0001, 0.001, 0.01, 0.1, 1]}
+param_grid = {'alpha': [0.0001, 0.0005, 0.001, 0.01]}
 
 # Define the number of folds for cross-validation
 n_folds = 5
@@ -147,7 +147,7 @@ std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
 weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 5  # Increase the weights for the tail observations
+weights[tails] *= 4  # Increase the weights for the tail observations
 
 # Perform grid search with parallel processing
 results = Parallel(n_jobs=n_jobs)(
