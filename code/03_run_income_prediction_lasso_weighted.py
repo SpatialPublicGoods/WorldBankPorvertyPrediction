@@ -41,8 +41,21 @@ dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 
 # Read dataset:
 
-ml_dataset = dpml.read_consolidated_ml_dataset()
+ml_dataset = (dpml.read_consolidated_ml_dataset()
+                    .groupby(['ubigeo','conglome','vivienda','hogar_ine','year'])
+                    .first()
+                    .reset_index(drop=False)
+                    )
 
+# Poverty rate sanity check:
+
+# ml_dataset['n_people'] = ml_dataset['mieperho'] * ml_dataset['pondera_i']
+# household_weight = ml_dataset['n_people']/ml_dataset.groupby('year')['n_people'].transform('sum')
+
+# ml_dataset['poor_215'] = (ml_dataset['income_pc'] <= ml_dataset['lp_215usd_ppp']) * household_weight
+# ml_dataset['poor_365'] = (ml_dataset['income_pc'] <= ml_dataset['lp_365usd_ppp']) * household_weight
+# ml_dataset['poor_685'] = (ml_dataset['income_pc'] <= ml_dataset['lp_685usd_ppp']) * household_weight
+# ml_dataset.loc[:,['year', 'poor_215', 'poor_365', 'poor_685', 'n_people']].groupby('year').sum()
 
 def filter_ml_dataset(ml_dataset):
     """
@@ -110,7 +123,6 @@ def get_depvar_and_features(ml_dataset_filtered, scaler_X=None, scaler_Y=None):
     Y_standardized_train = Y_standardized
     X_standardized_train = X_standardized
     X_standardized_train['const'] = 1
-
     return Y_standardized_train, X_standardized_train, scaler_X, scaler_Y
 
 
@@ -257,7 +269,7 @@ ml_dataset_filtered['log_income_pc_hat'] = best_model_loaded.predict(X_standardi
 
 ml_dataset_filtered['income_pc_hat'] = np.exp(ml_dataset_filtered['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
 
-# Figure 1: Distribution of predicted income vs true income
+#%% Figure 1: Distribution of predicted income vs true income
 plt.clf()
 sns.histplot(ml_dataset_filtered['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(ml_dataset_filtered['income_pc'], color='blue', kde=True, label='True Income', stat='density')
@@ -266,7 +278,7 @@ plt.legend()
 plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 plt.show()
 
-# Figure 2: Distribution of predicted income vs true income by region
+#%% Figure 2: Distribution of predicted income vs true income by region
 ml_dataset_filtered['ubigeo_region'] = ml_dataset_filtered['ubigeo'].str[:4]
 
 n_rows = 5
@@ -283,3 +295,34 @@ for i, region in enumerate(ml_dataset_filtered['ubigeo_region'].unique()):
     ax.legend()
     plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
 
+
+#%% Figure 3: Replicate poverty rate:
+
+ml_dataset_filtered['n_people'] = ml_dataset_filtered['mieperho'] * ml_dataset_filtered['pondera_i']
+household_weight = ml_dataset_filtered['n_people']/ml_dataset_filtered.groupby('year')['n_people'].transform('sum')
+ml_dataset_filtered['poor_685'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_685usd_ppp']) * household_weight
+ml_dataset_filtered['poor_365'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_365usd_ppp']) * household_weight
+ml_dataset_filtered['poor_215'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_215usd_ppp']) * household_weight
+ml_dataset_filtered['poor_hat_685'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_685usd_ppp']) * household_weight
+ml_dataset_filtered['poor_hat_365'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_365usd_ppp']) * household_weight
+ml_dataset_filtered['poor_hat_215'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_215usd_ppp']) * household_weight
+
+porverty_comparison = ml_dataset_filtered.loc[:,['poor_685','poor_365','poor_215', 
+                                                'poor_hat_685','poor_hat_365','poor_hat_215']].sum()
+
+porverty_comparison = pd.DataFrame(porverty_comparison).rename(columns={0:'PovertyRate'}).reset_index()
+
+porverty_comparison[['Poverty Line', 'Type']] = porverty_comparison['index'].str.rsplit('_', n=1, expand=True)
+
+porverty_comparison = porverty_comparison.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
+
+# porverty_comparison.plot(kind='bar', figsize=(10, 6), color=['#1f77b4', '#ff7f0e'])  # Replace with your preferred colors
+porverty_comparison.plot(kind='bar', figsize=(10, 6))  # Replace with your preferred colors
+plt.title('Comparison of Actual vs Predicted Poverty by Line')
+plt.ylabel('Sum')
+plt.xlabel('Poverty Line')
+plt.xticks(rotation=45)
+plt.ylim(0, .5)
+plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
+
+#%% Figure 4: Replicate poverty rate (by region)
