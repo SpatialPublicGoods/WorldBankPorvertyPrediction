@@ -1,0 +1,51 @@
+# General LaTeX temporary files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Compiled PDF
+# *.pdf
+
+# Backup files created by some text editors
+*~
+
+# Compiled files
+*.o
+*.pyc
+*.pyo
+*.class
+*.dll
+
+# Language-specific temporary or cache files
+__pycache__/
+
+# Log files or temporary files
+*.log
+*.tmp
+
+# Operating system files and folders
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor-specific files and folders
+.vscode/
+.idea/
+*.project
+*.settings
+
+**/__pycache__/
+/code/PVI/

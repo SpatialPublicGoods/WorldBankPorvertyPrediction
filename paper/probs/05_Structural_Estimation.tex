@@ -1,2 +1,10 @@
 \section{Estimation:}
 
+Our preferred specification is a model of the following form. 
+
+\begin{align*}
+    y_{h,t} = a_c + b t + \sum_{m = 1}^{12} \mathbbm{1}\{\text{M}_{h,t} = m\}\gamma_{m} + \sum_{s=1}^S\phi_s \bar{y}_{c,t-s}  + \sum_k^K\sum_r^R \mathbbm{1}\{\text{Reg}_{h,t} = r\}\cdot \beta^{[k]}_r X^{[k]}_{h,t} + \epsilon_{h,t}
+\end{align*}
+
+
+Where in the left-hand side $y_{h,t}$ is the logarithm of income per-capita of household h at time t. In the right-hand side the explanatory variables are $\alpha_c$ which is a fixed effect for the conglomerate c where the household h belongs. The parameter $b$ corresponds to the trend changes in income and $t$ is just the period of analysis. Parameters $\gamma_m$ are fixed effect for the month at which the survey was collected for household $h$ that controls for the seasonality of income. In addition to the fixed effects we control for the lagged value of log income per capita of the conglomerate which is denoted as $\bar{y}_{c,t-s}$ and $\phi_s$ is the parameter associated with lag $s = \{1,...,S\}$. We also include interaction terms between the region $Reg_{h,t}$ where the household lives and $k=\{1,...,K\}$ characteristics $X^{[k]}_{h,t}$ from the household that come from administrative data and satelite data. Finally, there is an error term that we do not observe $\epsilon_{h,t}$

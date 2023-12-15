@@ -1,2 +1,53 @@
-\section{The Theoretical Model:}
+\section{Sampling Weighting Factor:}
 
+
+Probability of selection of a conglomerate according to \href{https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1795/pdf/ApendiceA.pdf}{INEI}
+
+\begin{align*}
+    Pr(U_{rhi}) = \frac{n_{rh} M_{rhi}}{M_{rh}}
+\end{align*}
+
+
+\begin{itemize}
+    \item $U_{rhi}$: i-th conglome in h-th stratum, in r-th region.
+    \item $n_{rh}$: Number of conglome in h-th stratum in r-th region.
+    \item $M_{rhi}$: Number of households in i-th conglome, in h-th stratum in r-th region.
+    \item $M_{rh}$ Total number of households in the h-th stratum in r-th region.
+\end{itemize}
+
+Probability of selection of a household within a conglome. Inei clusters households by type (households with children, without children and others) let's call these type k.
+
+\begin{align*}
+    Pr(H_{krhi} | U_{rhi}) = \frac{m_{krhi}}{M_{rhi}}
+\end{align*}
+
+
+\begin{itemize}
+    \item $H_{krhi}$: household type k, in region r, stratum h and conglome i.
+    \item $m_{krhi}$: Number of households type k, in region r, stratum h and conglome i.
+\end{itemize}
+
+Joint probability of choosing a household and a conglome:
+
+\begin{align*}
+    Pr(H_{krhi}, U_{rhi}) &=  Pr(H_{krhi} | U_{rhi}) \times Pr(U_{rhi})\\ 
+    &= \frac{m_{krhi}}{M_{rhi}}\times \frac{n_{rh} M_{rhi}}{M_{rh}}\\
+    &= \frac{m_{krhi}\times n_{rh}}{M_{rh}}
+\end{align*}
+
+In ENAHO, $\textit{factor\_expansion}_{krhi}$ is the inverse of the joint prob of choosing family type k and conglome i in stratum h from region r.
+
+\begin{align*}
+    Pr(H_{krhi}, U_{rhi}) = \textit{factor\_expansion}_{krhi}^{-1} = \frac{m_{krhi}\times n_{rh}}{M_{rh}}
+\end{align*}
+
+This is something that we observe. So what we can do is use \textit{law of total probability} to integrate across households type k and we can back out the probability of choosing $U_{rhi}$.
+
+\begin{align*}
+     \sum_{k}Pr(H_{krhi}, U_{rhi})  &= \sum_k \textit{factor\_expansion}_{krhi}^{-1} \\
+                &= \sum_k \frac{m_{krhi}\times n_{rh}}{M_{rh}} \\
+                &= \frac{n_{rh}\sum_k m_{krhi}}{M_{rh}} \\ 
+                &= \frac{n_{rh}\times M_{rhi}}{M_{rh}} = Pr(U_{rhi})
+\end{align*}
+
+Note that the final step uses the fact that: $M_{rhi} = \sum_k m_{krhi}$. Since we are summing across all household types within rhi, we get the total number of households in rhi which is $M_{rhi}$. That way we can back out $Pr(U_{rhi})$. QED.
