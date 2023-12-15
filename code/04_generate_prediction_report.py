@@ -211,7 +211,6 @@ plt.plot(income_series['date'], income_series['income_pc'], label='True Income',
 plt.plot(income_series['date'], income_series['income_pc_hat'], label='Predicted Income', color='red')
 plt.xlabel('Date')
 plt.ylabel('Income')
-plt.title('Time Series of Income')
 plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig5_median_income_time_series.pdf', bbox_inches='tight')
@@ -258,7 +257,6 @@ plt.errorbar(income_series['date'], income_series['income_pc_hat_weighted'], yer
 
 plt.xlabel('Date')
 plt.ylabel('Income')
-plt.title('Time Series of Income')
 plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig5_median_income_time_series.pdf', bbox_inches='tight')
@@ -303,7 +301,6 @@ plt.errorbar(income_series['date'], income_series['income_pc_hat_weighted'], yer
 
 plt.xlabel('Date')
 plt.ylabel('Income')
-plt.title('Time Series of Income')
 plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig6_median_income_time_series_quarterly.pdf', bbox_inches='tight')
@@ -365,7 +362,6 @@ plt.errorbar(income_series['date'], income_series['poor_hat_215'], yerr=income_s
              label='LP 215 Predict', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
 plt.xlabel('Date')
 plt.ylabel('Poverty Rate')
-plt.title('Time Series of Income')
 plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig6_poverty_rate_time_series.pdf', bbox_inches='tight')
