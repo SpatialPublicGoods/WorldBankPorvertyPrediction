@@ -47,17 +47,6 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .reset_index(drop=False)
                     )
 
-# Poverty rate sanity check:
-
-# ml_dataset['n_people'] = ml_dataset['mieperho'] * ml_dataset['pondera_i']
-# household_weight = ml_dataset['n_people']/ml_dataset.groupby('year')['n_people'].transform('sum')
-
-# ml_dataset['poor_215'] = (ml_dataset['income_pc'] <= ml_dataset['lp_215usd_ppp']) * household_weight
-# ml_dataset['poor_365'] = (ml_dataset['income_pc'] <= ml_dataset['lp_365usd_ppp']) * household_weight
-# ml_dataset['poor_685'] = (ml_dataset['income_pc'] <= ml_dataset['lp_685usd_ppp']) * household_weight
-# ml_dataset.loc[:,['year', 'poor_215', 'poor_365', 'poor_685', 'n_people']].groupby('year').sum()
-
-
 # Obtain filtered dataset:
 ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset)
 

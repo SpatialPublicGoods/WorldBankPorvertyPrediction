@@ -29,21 +29,60 @@ def append_enaho_sedlac():
     list_enaho_datasets = []
 
     for yy in range(2013, 2021):
-                
-        enaho_yy = pd.read_stata(os.path.join(dpml.dataPath, 
-                                            dpml.raw,
-                                            'peru/data/SEDLAC - ENAHO Merged Data/',
-                                            dpml.enaho_sedlac + str(yy) + '.dta'))
+        
+        if yy >= 2013:
+            enaho_yy = pd.read_stata(os.path.join(dpml.dataPath, 
+                                                dpml.raw,
+                                                'peru/data/SEDLAC - ENAHO Merged Data/',
+                                                dpml.geo_sedlac + str(yy) + '.dta'))
+        else:
+            enaho_yy = pd.read_stata(os.path.join(dpml.dataPath, 
+                                                dpml.raw,
+                                                'peru/data/SEDLAC - ENAHO Merged Data/',
+                                                dpml.onlygeo_sedlac + str(yy) + '.dta'))
+        
+        # Filter out variables and obtain household level data:
+        enaho_yy = filter_variables_and_obtain_household_level_data(enaho_yy)
 
-        
+        # Append to list:
         list_enaho_datasets.append(enaho_yy)
-        
+
+    # Concatenate all datasets:       
     enaho_sedlac_panel = pd.concat(list_enaho_datasets, axis=0)
 
-    enaho_sedlac_panel.to_csv(os.path.join(dpml.dataPath,dpml.working, 
-                                           'enaho_sedlac_panel.csv'), index=False)
+    enaho_sedlac_panel.to_csv(os.path.join(dpml.dataPath,
+                                           dpml.working, 
+                                           'enaho_sedlac_pool_household.csv'), index=False)
 
     return enaho_sedlac_panel
+
+
+
+def filter_variables_and_obtain_household_level_data(enaho_sedlac):
+    """
+    Filter out variables and obtain household level data
+
+    Parameters
+    ----------
+    enaho_sedlac : Dataframe with individual level data.
+    """
+
+    # Keep only relevant columns:
+    enaho_sedlac_filtered = enaho_sedlac.loc[:,['ubigeo','conglome','vivienda','hogar_ine','strata', 
+                                                'year', 'mes', 'latitud','longitud',
+                                                'mieperho', 'ipcf_ppp17','lp_215usd_ppp',
+                                                'lp_365usd_ppp','lp_685usd_ppp','pondera_i']]
+
+    # Filter out missing values:
+    enaho_sedlac_filtered_household = (enaho_sedlac_filtered.groupby(['ubigeo','conglome','vivienda','hogar_ine','year', 'mes'])
+                                                        .first()
+                                                        .reset_index()
+                                                        .rename(columns={'ipcf_ppp17':'income_pc',
+                                                                        'mes':'month'})
+                                                        )
+    
+    return enaho_sedlac_filtered_household
+    
 
 
 def read_appended_enaho_sedlac():
@@ -55,24 +94,8 @@ def read_appended_enaho_sedlac():
     return enaho_sedlac_pool
 
 
+enaho_sedlac_panel = append_enaho_sedlac()
+
 # Read enaho sedlac
 enaho_sedlac_pool = read_appended_enaho_sedlac()
 
-# Keep only relevant columns:
-enaho_sedlac_pool_filtered = enaho_sedlac_pool.loc[:,['ubigeo','conglome','vivienda','hogar_ine','strata', 
-                                             'year', 'mes', 'latitud','longitud',
-                                            'mieperho', 'ipcf_ppp17','lp_215usd_ppp',
-                                            'lp_365usd_ppp','lp_685usd_ppp','pondera_i']]
-
-# Filter out missing values:
-enaho_sedlac_pool_household = (enaho_sedlac_pool_filtered.groupby(['ubigeo','conglome','vivienda','hogar_ine','year', 'mes'])
-                                                            .first()
-                                                            .reset_index()
-                                                            .rename(columns={'ipcf_ppp17':'income_pc',
-                                                                             'mes':'month'})
-                                                            )
-
-# Save to csv:
-enaho_sedlac_pool_household.to_csv(os.path.join(dpml.dataPath,
-                                                dpml.working, 
-                                                'enaho_sedlac_pool_household.csv'), index=False)

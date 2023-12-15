@@ -31,6 +31,8 @@ class DataPreparationForML:
 
         # 2. define file names: 
 
+        self.geo_sedlac = 'geo_sedlac'
+        self.onlygeo_sedlac = 'onlygeo_sedlac'
         self.enaho = 'income.csv'
         self.enaho_sedlac = 'enaho_sedlac_pool_household.csv'
         self.domestic_violence = 'domestic_violence.csv'
