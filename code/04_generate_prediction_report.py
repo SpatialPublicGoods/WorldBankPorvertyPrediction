@@ -101,8 +101,8 @@ df['n_people'] = df['mieperho'] * df['pondera_i']
 
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.histplot(ml_dataset_filtered_validation['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(ml_dataset_filtered_validation['income_pc'], color='blue', kde=True, label='True Income', stat='density')
+sns.histplot(ml_dataset_filtered_validation['income_pc_hat'], color=settings.color2, kde=True, label='Predicted Income', stat='density')
+sns.histplot(ml_dataset_filtered_validation['income_pc'], color=settings.color4, kde=True, label='True Income', stat='density')
 plt.xlim(0, 3000)
 plt.legend()
 plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
@@ -114,8 +114,8 @@ plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_traini
 
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.ecdfplot(ml_dataset_filtered_validation['income_pc_hat'], color='red', label='Predicted Income')
-sns.ecdfplot(ml_dataset_filtered_validation['income_pc'], color='blue', label='True Income')
+sns.ecdfplot(ml_dataset_filtered_validation['income_pc_hat'], color=settings.color2, label='Predicted Income')
+sns.ecdfplot(ml_dataset_filtered_validation['income_pc'], color=settings.color4, label='True Income')
 plt.xlim(0, 2500)
 plt.legend()
 plt.xlabel('Income')
@@ -135,8 +135,8 @@ fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20), sharex=True, sharey=T
 for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].unique()):
     ax = axes[i // n_cols, i % n_cols]
     region_data = ml_dataset_filtered_validation[ml_dataset_filtered_validation['ubigeo_region'] == region]
-    sns.histplot(region_data['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density', ax=ax)
-    sns.histplot(region_data['income_pc'], color='blue', kde=True, label='True Income', stat='density', ax=ax)
+    sns.histplot(region_data['income_pc_hat'], color=settings.color2, kde=True, label='Predicted Income', stat='density', ax=ax)
+    sns.histplot(region_data['income_pc'], color=settings.color4, kde=True, label='True Income', stat='density', ax=ax)
     ax.set_xlim(0, 3000)
     ax.set_title(region)
     ax.legend()
@@ -166,7 +166,7 @@ porverty_comparison = porverty_comparison.pivot(index='Poverty Line', columns='T
 
 
 plt.clf()
-porverty_comparison.plot(kind='bar', figsize=(10, 10), color=[settings.color2, settigs.color4]) 
+porverty_comparison.plot(kind='bar', figsize=(10, 10), color=[settings.color2, settings.color4]) 
 plt.ylabel('Sum')
 plt.xlabel('Poverty Line')
 plt.xticks(rotation=45)
