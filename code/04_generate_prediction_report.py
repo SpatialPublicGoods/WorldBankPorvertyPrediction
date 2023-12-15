@@ -164,7 +164,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
                     fill=False, 
                     element='step',
                     ax=ax)
-    ax.set_xlim(0, 3000)
+    ax.set_xlim(0, 2000)
     ax.set_title(region)
     ax.legend()
     plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
