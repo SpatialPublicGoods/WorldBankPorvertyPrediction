@@ -277,9 +277,9 @@ plt.figure(figsize=(10, 10))
 
 # Plotting the means with standard deviation
 plt.errorbar(income_series['date'], income_series['income_pc_weighted'], yerr=income_series['std_mean'], 
-             label='True Income', color=settigs.color1, fmt='-')
+             label='True Income', color=settings.color1, fmt='-')
 plt.errorbar(income_series['date'], income_series['income_pc_hat_weighted'], yerr=income_series['std_hat_mean'], 
-             label='Predicted Income', color=settigs.color2, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+             label='Predicted Income', color=settings.color2, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
 
 plt.xlabel('Date')
 plt.ylabel('Income')
