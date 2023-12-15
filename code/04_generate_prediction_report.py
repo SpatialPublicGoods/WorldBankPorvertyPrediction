@@ -20,6 +20,7 @@ from sklearn.base import clone
 from sklearn.linear_model import Lasso
 import numpy as np
 from joblib import Parallel, delayed
+from global_settings import global_settings
 
 
 
@@ -34,6 +35,8 @@ freq = 'm'
 
 date = '2023-12-12' #datetime.today().strftime('%Y-%m-%d')
 
+settings = global_settings()
+
 #--------------
 
 dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
@@ -45,6 +48,9 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .first()
                     .reset_index(drop=False)
                     )
+
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5])
+
 
 # 2. Obtain filtered dataset:
 
@@ -62,34 +68,58 @@ best_model = dpml.load_ml_model(model_filename = 'best_weighted_lasso_model.jobl
 
 # 4. Predict income
 
+ml_dataset_filtered_train['log_income_pc_hat'] = best_model.predict(X_standardized_train)
+ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
+
 ml_dataset_filtered_validation['log_income_pc_hat'] = best_model.predict(X_standardized_validation)
 ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
 
-#%% Figure 1: Distribution of predicted income vs true income
+
+# 5. Compiling both datasets and creating some variables:
+
+df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
+
+month_to_quarter = {1:1, 2:1, 3:1, 
+                    4:4, 5:4, 6:4, 
+                    7:7, 8:7, 9:7, 
+                    10:10, 11:10, 12:10}
+
+df['quarter'] = df['month'].map(month_to_quarter)
+
+df['n_people'] = df['mieperho'] * df['pondera_i']
+
+df['ubigeo_region'] = df['ubigeo'].str[:4]
+
+df['ubigeo_provincia'] = df['ubigeo'].str[:6]
+
+#%% Figure 1 (fig1_prediction_vs_true_income_distribution_lasso_training_weighted): 
+# Distribution of predicted income vs true income
+#--------------------------------------------------------------
+
 plt.clf()
 sns.histplot(ml_dataset_filtered_validation['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density')
 sns.histplot(ml_dataset_filtered_validation['income_pc'], color='blue', kde=True, label='True Income', stat='density')
 plt.xlim(0, 3000)
 plt.legend()
 plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
-plt.show()
 
-#%% Figure 1b: ECDF of predicted income vs true income
+
+#%% Figure 1b (fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted): 
+# ECDF of predicted income vs true income
+#-------------------------------------------------------
 
 plt.clf()
 sns.ecdfplot(ml_dataset_filtered_validation['income_pc_hat'], color='red', label='Predicted Income')
 sns.ecdfplot(ml_dataset_filtered_validation['income_pc'], color='blue', label='True Income')
 plt.xlim(0, 2500)
 plt.legend()
-plt.title('ECDF of Predicted vs True Income')
 plt.xlabel('Income')
 plt.ylabel('Cumulative Distribution')
 plt.savefig('../figures/fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted.pdf', bbox_inches='tight')
-plt.show()
 
-#%% Figure 2: Distribution of predicted income vs true income by region
-
-ml_dataset_filtered_validation['ubigeo_region'] = ml_dataset_filtered_validation['ubigeo'].str[:4]
+#%% Figure 2 (fig2_prediction_vs_true_income_by_region_lasso_training_weighted): 
+# Distribution of predicted income vs true income by region
+#---------------------------------------------------------------------------------
 
 n_rows = 5
 n_cols = 5
@@ -105,7 +135,9 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     ax.legend()
     plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
 
-#%% Figure 3: Replicate poverty rate:
+#%% Figure 3 (fig3_prediction_vs_true_poverty_rate_national): 
+# Poverty Rate National 
+#-----------------------------------------------------------------------------------
 
 ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
 household_weight = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby('year')['n_people'].transform('sum')
@@ -127,14 +159,16 @@ porverty_comparison = porverty_comparison.pivot(index='Poverty Line', columns='T
 
 # porverty_comparison.plot(kind='bar', figsize=(10, 6), color=['#1f77b4', '#ff7f0e'])  # Replace with your preferred colors
 porverty_comparison.plot(kind='bar', figsize=(10, 6))  # Replace with your preferred colors
-plt.title('Comparison of Actual vs Predicted Poverty by Line')
 plt.ylabel('Sum')
 plt.xlabel('Poverty Line')
 plt.xticks(rotation=45)
 plt.ylim(0, .5)
 plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
-#%% Figure 4: Replicate poverty rate (by region)
+
+#%% Figure 4 (fig4_prediction_vs_true_poverty_rate_regions): 
+# Replicate poverty rate (by region)
+#----------------------------------------------------
 
 household_weight = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby(['year','ubigeo_region'])['n_people'].transform('sum')
 ml_dataset_filtered_validation['poor_685'] = (ml_dataset_filtered_validation['income_pc'] <= ml_dataset_filtered_validation['lp_685usd_ppp']) * household_weight
@@ -176,54 +210,11 @@ for j in range(i + 1, n_rows * n_cols):
 
 plt.savefig('../figures/fig4_prediction_vs_true_poverty_rate_regions.pdf', bbox_inches='tight')
 
-plt.tight_layout()
-
-#%% Figure 5: 
-
-month_to_quarter = {1:1, 2:1, 3:1, 
-                    4:4, 5:4, 6:4, 
-                    7:7, 8:7, 9:7, 
-                    10:10, 11:10, 12:10}
-
-ml_dataset_filtered_train['quarter'] = ml_dataset_filtered_train['month'].map(month_to_quarter)
-ml_dataset_filtered_validation['quarter'] = ml_dataset_filtered_validation['month'].map(month_to_quarter)
-
-income_series_train = (ml_dataset_filtered_train.groupby(['year','quarter'])
-                                                .agg({'income_pc': 'mean'})
-                                                .reset_index()
-                                                )
-
-income_series_train['income_pc_hat'] = income_series_train['income_pc']
-
-income_series_validation = (ml_dataset_filtered_validation.groupby(['year','quarter'])
-                                                        .agg({'income_pc': 'mean', 'income_pc_hat': 'mean'})
-                                                        .reset_index()
-                                                        )
-
-income_series = pd.concat([income_series_train, income_series_validation], axis=0).rename(columns={'quarter':'month'})
-
-# Convert 'year' and 'month' to a datetime
-income_series['date'] = pd.to_datetime(income_series[['year', 'month']].assign(DAY=1))
-
-# Plotting
-plt.figure(figsize=(10, 6))
-plt.plot(income_series['date'], income_series['income_pc'], label='True Income', color='blue')
-plt.plot(income_series['date'], income_series['income_pc_hat'], label='Predicted Income', color='red')
-plt.xlabel('Date')
-plt.ylabel('Income')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig5_median_income_time_series.pdf', bbox_inches='tight')
 
 
-
-#%% Figure 5: Time series Plot (Yearly)
-
-ml_dataset_filtered_train['income_pc_hat'] = ml_dataset_filtered_train['income_pc']
-
-df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
-
-df['n_people'] = df['mieperho'] * df['pondera_i']
+#%% Figure 5 (fig5_average_income_time_series): 
+# Time series of average income (Yearly)
+#----------------------------------------------------
 
 household_weight = df['n_people']/df.groupby('year')['n_people'].transform('sum')
 
@@ -251,23 +242,69 @@ plt.figure(figsize=(10, 6))
 
 # Plotting the means with standard deviation
 plt.errorbar(income_series['date'], income_series['income_pc_weighted'], yerr=income_series['std_mean'], 
-             label='True Income', color='blue', fmt='-')
+             label='True Income', color=settigs.color1, fmt='-')
 plt.errorbar(income_series['date'], income_series['income_pc_hat_weighted'], yerr=income_series['std_hat_mean'], 
-             label='Predicted Income', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+             label='Predicted Income', color=settigs.color2, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
 
 plt.xlabel('Date')
 plt.ylabel('Income')
 plt.legend()
 plt.grid(True)
-plt.savefig('../figures/fig5_median_income_time_series.pdf', bbox_inches='tight')
-plt.show()
+plt.savefig('../figures/fig5_average_income_time_series.pdf', bbox_inches='tight')
 
 
-#%% Figure 6: Time series Plot (Quarter)
 
-df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
+#%% Figure 6 (fig6_average_income_time_series_by_area): 
+# Time series average income plot by area (Yearly)
+#----------------------------------------------------
 
-df['n_people'] = df['mieperho'] * df['pondera_i']
+grouping_variables = ['year','urbano']
+household_weight = df['n_people']/df.groupby(grouping_variables)['n_people'].transform('sum')
+
+df['income_pc_weighted'] = df['income_pc'] * household_weight 
+df['income_pc_hat_weighted'] = df['income_pc_hat'] * household_weight 
+
+income_series = (df.groupby(grouping_variables)
+                            .agg({
+                                  'income_pc_weighted': 'sum', 
+                                  'income_pc_hat_weighted': 'sum',
+                                  'n_people': 'count'
+                                  })
+                            .reset_index()
+                            )
+
+income_series['std_mean'] = income_series['income_pc_weighted']/np.sqrt(income_series['n_people'])
+income_series['std_hat_mean'] = income_series['income_pc_hat_weighted']/np.sqrt(income_series['n_people'])
+
+# Convert 'year' and 'month' to a datetime
+income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
+
+income_series_urban = income_series.query('urbano==1')
+income_series_rural = income_series.query('urbano==0')
+
+# Plotting the means with standard deviation
+# Urbano
+plt.clf()
+plt.errorbar(income_series_urban['date'], income_series_urban['income_pc_weighted'], yerr=income_series_urban['std_mean'], 
+             label='True Urban', color=settings.color1, fmt='-')
+plt.errorbar(income_series_urban['date'], income_series_urban['income_pc_hat_weighted'], yerr=income_series_urban['std_hat_mean'], 
+             label='Predicted Urban', color=settings.color1, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+# Rural
+plt.errorbar(income_series_rural['date'], income_series_rural['income_pc_weighted'], yerr=income_series_rural['std_mean'], 
+             label='True Rural', color=settings.color4, fmt='-')
+plt.errorbar(income_series_rural['date'], income_series_rural['income_pc_hat_weighted'], yerr=income_series_rural['std_hat_mean'], 
+             label='Predicted Rural', color=settings.color4, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+
+plt.xlabel('Date')
+plt.ylabel('Income')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/fig6_average_income_time_series_by_area.pdf', bbox_inches='tight')
+
+
+#%% Figure 7: (fig7_average_income_time_series_quarterly)
+# Time series average income (Quarterly)
+#----------------------------------------------------
 
 household_weight = df['n_people']/df.groupby(['year', 'quarter'])['n_people'].transform('sum')
 
@@ -295,24 +332,161 @@ plt.figure(figsize=(10, 6))
 
 # Plotting the means with standard deviation
 plt.errorbar(income_series['date'], income_series['income_pc_weighted'], yerr=income_series['std_mean'], 
-             label='True Income', color='blue', fmt='-')
+             label='True Income', color=settings.color2, fmt='-')
 plt.errorbar(income_series['date'], income_series['income_pc_hat_weighted'], yerr=income_series['std_hat_mean'], 
-             label='Predicted Income', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+             label='Predicted Income', color=settings.color4, fmt='--', linestyle='--')  # Adjust linestyle if needed
 
 plt.xlabel('Date')
 plt.ylabel('Income')
 plt.legend()
 plt.grid(True)
-plt.savefig('../figures/fig6_median_income_time_series_quarterly.pdf', bbox_inches='tight')
-plt.show()
+plt.savefig('../figures/fig7_average_income_time_series_quarterly.pdf', bbox_inches='tight')
 
 
-#%% Figure 7: Gini Coefficient
 
-df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
+#%% Figure 8 (fig8_poverty_rate_time_series): 
+# Poverty Rate (Yearly)
+#-------------------------------------------
+
+household_weight = df['n_people']/df.groupby('year')['n_people'].transform('sum')
+df['poor_685'] = (df['income_pc'] <= df['lp_685usd_ppp']) * household_weight
+df['poor_365'] = (df['income_pc'] <= df['lp_365usd_ppp']) * household_weight
+df['poor_215'] = (df['income_pc'] <= df['lp_215usd_ppp']) * household_weight
+df['poor_hat_685'] = (df['income_pc_hat'] <= df['lp_685usd_ppp']) * household_weight
+df['poor_hat_365'] = (df['income_pc_hat'] <= df['lp_365usd_ppp']) * household_weight
+df['poor_hat_215'] = (df['income_pc_hat'] <= df['lp_215usd_ppp']) * household_weight
+income_series = (df.groupby(['year'])
+                            .agg({
+                                  'poor_685': 'sum', 
+                                  'poor_365': 'sum',
+                                  'poor_215': 'sum',
+                                  'poor_hat_685': 'sum', 
+                                  'poor_hat_365': 'sum',
+                                  'poor_hat_215': 'sum',
+                                  'n_people': 'count'
+                                  })
+                            .reset_index()
+                            )
+income_series['std_685_mean'] = np.sqrt(income_series['poor_685']*(1-income_series['poor_685']))/np.sqrt(income_series['n_people'])
+income_series['std_365_mean'] = np.sqrt(income_series['poor_365']*(1-income_series['poor_365']))/np.sqrt(income_series['n_people'])
+income_series['std_215_mean'] = np.sqrt(income_series['poor_215']*(1-income_series['poor_215']))/np.sqrt(income_series['n_people'])
+# Convert 'year' and 'month' to a datetime
+income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
+
+# Plotting:
+plt.clf()
+plt.figure(figsize=(10, 6))
+# Plotting the means with standard deviation
+# poor_685
+plt.errorbar(income_series['date'], income_series['poor_685'], yerr=income_series['std_685_mean'], 
+             label='LP 685', color=settings.color1, fmt='-')
+plt.errorbar(income_series['date'], income_series['poor_hat_685'], yerr=income_series['std_685_mean'], 
+             label='LP 685 Predict', color=settings.color1, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series['date'], income_series['poor_365'], yerr=income_series['std_365_mean'], 
+             label='LP 365', color=settings.color3, fmt='-')
+plt.errorbar(income_series['date'], income_series['poor_hat_365'], yerr=income_series['std_365_mean'], 
+             label='LP 365 Predict', color=settings.color3, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series['date'], income_series['poor_215'], yerr=income_series['std_215_mean'], 
+             label='LP 215', color=settings.color5, fmt='-')
+plt.errorbar(income_series['date'], income_series['poor_hat_215'], yerr=income_series['std_215_mean'], 
+             label='LP 215 Predict', color=settings.color5, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.xlabel('Date')
+plt.ylabel('Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/fig8_poverty_rate_time_series.pdf', bbox_inches='tight')
+
+
+#%% Figure 8a (fig8a_poverty_rate_time_series_urbano): 
+# Poverty Rate Urbano (Yearly)
+#-------------------------------------------
+
+household_weight = df['n_people']/df.groupby(['year','urbano'])['n_people'].transform('sum')
+df['poor_685'] = (df['income_pc'] <= df['lp_685usd_ppp']) * household_weight
+df['poor_365'] = (df['income_pc'] <= df['lp_365usd_ppp']) * household_weight
+df['poor_215'] = (df['income_pc'] <= df['lp_215usd_ppp']) * household_weight
+df['poor_hat_685'] = (df['income_pc_hat'] <= df['lp_685usd_ppp']) * household_weight
+df['poor_hat_365'] = (df['income_pc_hat'] <= df['lp_365usd_ppp']) * household_weight
+df['poor_hat_215'] = (df['income_pc_hat'] <= df['lp_215usd_ppp']) * household_weight
+income_series = (df.groupby(['year','urbano'])
+                            .agg({
+                                  'poor_685': 'sum', 
+                                  'poor_365': 'sum',
+                                  'poor_215': 'sum',
+                                  'poor_hat_685': 'sum', 
+                                  'poor_hat_365': 'sum',
+                                  'poor_hat_215': 'sum',
+                                  'n_people': 'count'
+                                  })
+                            .reset_index()
+                            )
+income_series['std_685_mean'] = np.sqrt(income_series['poor_685']*(1-income_series['poor_685']))/np.sqrt(income_series['n_people'])
+income_series['std_365_mean'] = np.sqrt(income_series['poor_365']*(1-income_series['poor_365']))/np.sqrt(income_series['n_people'])
+income_series['std_215_mean'] = np.sqrt(income_series['poor_215']*(1-income_series['poor_215']))/np.sqrt(income_series['n_people'])
+# Convert 'year' and 'month' to a datetime
+income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
+
+# Split between urbano and rural:
+income_series_urban = income_series.query('urbano==1')
+income_series_rural = income_series.query('urbano==0')
+
+# Plotting:
+plt.clf()
+plt.figure(figsize=(10, 6))
+# Plotting the means with standard deviation
+# poor_685
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_685'], yerr=income_series_urban['std_685_mean'], 
+             label='LP 685', color=settings.color1, fmt='-')
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_hat_685'], yerr=income_series_urban['std_685_mean'], 
+             label='LP 685 Predict', color=settings.color1, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_365'], yerr=income_series_urban['std_365_mean'], 
+             label='LP 365', color=settings.color3, fmt='-')
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_hat_365'], yerr=income_series_urban['std_365_mean'], 
+             label='LP 365 Predict', color=settings.color3, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_215'], yerr=income_series_urban['std_215_mean'], 
+             label='LP 215', color=settings.color5, fmt='-')
+plt.errorbar(income_series_urban['date'], income_series_urban['poor_hat_215'], yerr=income_series_urban['std_215_mean'], 
+             label='LP 215 Predict', color=settings.color5, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.xlabel('Date')
+plt.ylabel('Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/fig8a_poverty_rate_time_series_urbano.pdf', bbox_inches='tight')
+
+
+#%% Figure 8b (fig8a_poverty_rate_time_series_urbano): 
+# Poverty Rate Rural (Yearly)
+#-------------------------------------------
+
+# Plotting:
+plt.clf()
+plt.figure(figsize=(10, 6))
+# Plotting the means with standard deviation
+# poor_685
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_685'], yerr=income_series_rural['std_685_mean'], 
+             label='LP 685', color=settings.color1, fmt='-')
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_hat_685'], yerr=income_series_rural['std_685_mean'], 
+             label='LP 685 Predict', color=settings.color1, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_365'], yerr=income_series_rural['std_365_mean'], 
+             label='LP 365', color=settings.color3, fmt='-')
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_hat_365'], yerr=income_series_rural['std_365_mean'], 
+             label='LP 365 Predict', color=settings.color3, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_215'], yerr=income_series_rural['std_215_mean'], 
+             label='LP 215', color=settings.color5, fmt='-')
+plt.errorbar(income_series_rural['date'], income_series_rural['poor_hat_215'], yerr=income_series_rural['std_215_mean'], 
+             label='LP 215 Predict', color=settings.color5, fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.xlabel('Date')
+plt.ylabel('Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/fig8b_poverty_rate_time_series_rural.pdf', bbox_inches='tight')
+
+
+#%% Figure 9 (fig9_gini_time_series): 
+# Gini Coefficient
+#------------------------------------------
 
 df['n_people'] = df['mieperho'] * df['pondera_i']
-
 household_weight = df['n_people']/df.groupby('year')['n_people'].transform('sum')
 
 def gini_coefficient(income_data):
@@ -333,14 +507,14 @@ income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DA
 plt.clf()
 # Plotting the means with standard deviation
 plt.figure(figsize=(10, 6))
-plt.plot(income_series['date'], income_series['gini'], label='True GINI', color='blue')
-plt.plot(income_series['date'], income_series['gini_hat'], label='Predicted GINI', color='red')
+plt.plot(income_series['date'], income_series['gini'], label='True GINI', color=settings.color2)
+plt.plot(income_series['date'], income_series['gini_hat'], label='Predicted GINI', color=settings.color4, linestyle='--')
 plt.xlabel('Date')
 plt.ylabel('Income')
 plt.ylim(0.2, .8)
 plt.legend()
 plt.grid(True)
-plt.savefig('../figures/fig7_gini_time_series.pdf', bbox_inches='tight')
+plt.savefig('../figures/fig9_gini_time_series.pdf', bbox_inches='tight')
 
 
 
