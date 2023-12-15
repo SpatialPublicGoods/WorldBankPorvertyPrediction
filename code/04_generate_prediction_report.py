@@ -263,7 +263,7 @@ plt.savefig('../figures/fig5_median_income_time_series.pdf', bbox_inches='tight'
 plt.show()
 
 
-#%% Figure 5: Time series Plot (Quarter)
+#%% Figure 6: Time series Plot (Quarter)
 
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
@@ -307,7 +307,7 @@ plt.savefig('../figures/fig6_median_income_time_series_quarterly.pdf', bbox_inch
 plt.show()
 
 
-#%% Figure 5: Poverty Rate (Yearly)
+#%% Figure 7: Gini Coefficient
 
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
@@ -315,54 +315,36 @@ df['n_people'] = df['mieperho'] * df['pondera_i']
 
 household_weight = df['n_people']/df.groupby('year')['n_people'].transform('sum')
 
-df['poor_685'] = (df['income_pc'] <= df['lp_685usd_ppp']) * household_weight
-df['poor_365'] = (df['income_pc'] <= df['lp_365usd_ppp']) * household_weight
-df['poor_215'] = (df['income_pc'] <= df['lp_215usd_ppp']) * household_weight
-df['poor_hat_685'] = (df['income_pc_hat'] <= df['lp_685usd_ppp']) * household_weight
-df['poor_hat_365'] = (df['income_pc_hat'] <= df['lp_365usd_ppp']) * household_weight
-df['poor_hat_215'] = (df['income_pc_hat'] <= df['lp_215usd_ppp']) * household_weight
+def gini_coefficient(income_data):
+    sorted_income = np.sort(income_data)
+    n = len(income_data)
+    cumulative_income = np.cumsum(sorted_income)
+    gini = (n + 1 - 2 * np.sum(cumulative_income) / cumulative_income[-1]) / n
+    return gini
 
-income_series = (df.groupby(['year'])
-                            .agg({
-                                  'poor_685': 'sum', 
-                                  'poor_365': 'sum',
-                                  'poor_215': 'sum',
-                                  'poor_hat_685': 'sum', 
-                                  'poor_hat_365': 'sum',
-                                  'poor_hat_215': 'sum',
-                                  'n_people': 'count'
-                                  })
-                            .reset_index()
-                            )
+income_series = df.groupby('year')['income_pc'].apply(gini_coefficient).reset_index().rename(columns={'income_pc':'gini'})
 
-income_series['std_685_mean'] = np.sqrt(income_series['poor_685']*(1-income_series['poor_685']))/np.sqrt(income_series['n_people'])
-income_series['std_365_mean'] = np.sqrt(income_series['poor_365']*(1-income_series['poor_365']))/np.sqrt(income_series['n_people'])
-income_series['std_215_mean'] = np.sqrt(income_series['poor_215']*(1-income_series['poor_215']))/np.sqrt(income_series['n_people'])
+income_series['gini_hat'] = list(df.groupby('year')['income_pc_hat'].apply(gini_coefficient))
 
 # Convert 'year' and 'month' to a datetime
 income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
 
 # Plotting:
 plt.clf()
-plt.figure(figsize=(10, 6))
-
 # Plotting the means with standard deviation
-# poor_685
-plt.errorbar(income_series['date'], income_series['poor_685'], yerr=income_series['std_685_mean'], 
-             label='LP 685', color='blue', fmt='-')
-plt.errorbar(income_series['date'], income_series['poor_hat_685'], yerr=income_series['std_685_mean'], 
-             label='LP 685 Predict', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
-plt.errorbar(income_series['date'], income_series['poor_365'], yerr=income_series['std_365_mean'], 
-             label='LP 365', color='blue', fmt='-')
-plt.errorbar(income_series['date'], income_series['poor_hat_365'], yerr=income_series['std_365_mean'], 
-             label='LP 365 Predict', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
-plt.errorbar(income_series['date'], income_series['poor_215'], yerr=income_series['std_215_mean'], 
-             label='LP 215', color='blue', fmt='-')
-plt.errorbar(income_series['date'], income_series['poor_hat_215'], yerr=income_series['std_215_mean'], 
-             label='LP 215 Predict', color='red', fmt='-.', linestyle='-.')  # Adjust linestyle if needed
+plt.figure(figsize=(10, 6))
+plt.plot(income_series['date'], income_series['gini'], label='True GINI', color='blue')
+plt.plot(income_series['date'], income_series['gini_hat'], label='Predicted GINI', color='red')
 plt.xlabel('Date')
-plt.ylabel('Poverty Rate')
+plt.ylabel('Income')
+plt.ylim(0.2, .8)
 plt.legend()
 plt.grid(True)
-plt.savefig('../figures/fig6_poverty_rate_time_series.pdf', bbox_inches='tight')
-plt.show()
+plt.savefig('../figures/fig7_gini_time_series.pdf', bbox_inches='tight')
+
+
+
+
+
+
+
