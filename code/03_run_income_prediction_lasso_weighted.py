@@ -57,87 +57,18 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
 # ml_dataset['poor_685'] = (ml_dataset['income_pc'] <= ml_dataset['lp_685usd_ppp']) * household_weight
 # ml_dataset.loc[:,['year', 'poor_215', 'poor_365', 'poor_685', 'n_people']].groupby('year').sum()
 
-def filter_ml_dataset(ml_dataset):
-    """
-    Filter the dataset to only include the observations that have all the years
-    Parameters
-    ----------
-    ml_dataset : dataframe
-    """
-    ml_dataset = ml_dataset.query('income_pc>0')
-    # First pass dropping all missing values:
-    ml_dataset_filtered = (ml_dataset.query('year >= 2014')
-                                    .query('year <= 2019')
-                                    .sample(frac=1) # Random shuffle
-                                    .reset_index(drop=True) # Remove index
-                                    )
-    ml_dataset_filtered['count_people'] = 1
-    conglome_count = ml_dataset_filtered.groupby(['conglome','year']).count().reset_index().loc[:,['conglome','year','count_people']]
-    conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count')['year']
-    # ml_dataset_filtered = ml_dataset_filtered.loc[ml_dataset_filtered['conglome'].isin(conglome_count.query('count>=4').conglome.unique()),:]
-    ml_dataset_filtered = ml_dataset_filtered.dropna(subset='income_pc_lagged').reset_index(drop=True)
-    return ml_dataset_filtered
-
-
-def get_depvar_and_features(ml_dataset_filtered, scaler_X=None, scaler_Y=None):
-    """
-    Get the training sample
-    Parameters
-    ----------
-    ml_dataset_filtered : dataframe
-    """
-    # Define the independent variables to be used in the model:
-    indepvar_column_names = dpml.indepvars[1:] + dpml.indepvars_weather
-    # Define dependent and independent variables:
-    Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True) 
-    X = ml_dataset_filtered.loc[:,['log_income_pc_lagged']  + indepvar_column_names]
-    X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
-    # Step 1: Impute missing values
-    imputer = SimpleImputer(strategy='mean')
-    X_imputed = imputer.fit_transform(X)
-    if scaler_X is None:
-        # Step 2: Standardize X
-        scaler_X = StandardScaler()
-        X_standardized = scaler_X.fit_transform(X_imputed)
-        X_standardized = pd.DataFrame(X_standardized, columns=X.columns)
-        # Step 3: Standardize Y
-        scaler_Y = StandardScaler()
-        Y_standardized = pd.Series(scaler_Y.fit_transform(Y.values.reshape(-1, 1)).flatten())  # Use flatten to convert it back to 1D array
-    else:
-        X_standardized = scaler_X.transform(X_imputed)
-        X_standardized = pd.DataFrame(X_standardized, columns=X.columns)
-        Y_standardized = pd.Series(scaler_Y.transform(Y.values.reshape(-1, 1)).flatten())
-    # Step 4: Generate dummy variables for ubigeo and month: 
-    ubigeo_dummies = pd.get_dummies(ml_dataset_filtered['ubigeo'].str[:4], prefix='ubigeo', drop_first=True).reset_index(drop=True)
-    month_dummies = pd.get_dummies(ml_dataset_filtered['month'], prefix='month', drop_first=True).reset_index(drop=True)
-    # Step 5: Adding the dummy variables to X
-    X_standardized = pd.concat([X_standardized, ubigeo_dummies.astype(int), month_dummies.astype(int)], axis=1)
-    # Step 6: Create interaction terms:
-    variables_to_interact = ['log_income_pc_lagged'] + indepvar_column_names
-    # Create interaction terms
-    for var in variables_to_interact:
-        for dummy in ubigeo_dummies.columns:
-            interaction_term = X_standardized[var] * ubigeo_dummies[dummy]
-            X_standardized[f"{var}_x_{dummy}"] = interaction_term
-    # Step 7: Split the model in validation data and train and testing data:
-    Y_standardized_train = Y_standardized
-    X_standardized_train = X_standardized
-    X_standardized_train['const'] = 1
-    return Y_standardized_train, X_standardized_train, scaler_X, scaler_Y
-
 
 # Obtain filtered dataset:
-ml_dataset_filtered = filter_ml_dataset(ml_dataset)
+ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset)
 
-Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = get_depvar_and_features(ml_dataset_filtered.query('year<=2018'))
+Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered.query('year<=2018'))
 
-ml_dataset_filtered = filter_ml_dataset(ml_dataset).query('year==2019')
+ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset).query('year==2019')
 
-Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = get_depvar_and_features(ml_dataset_filtered.query('year==2019'),scaler_X_train, scaler_Y_train)
+Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered.query('year==2019'),scaler_X_train, scaler_Y_train)
 
 
-
-#%%
+#%% Run Lasso Regression:
 
 # Define the model
 lasso = Lasso()
@@ -253,76 +184,3 @@ plt.legend()
 plt.savefig('../figures/prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 plt.show()
 
-#%% The Lasso model looks great, now let's save the best model:
-
-model_filename = 'best_weighted_lasso_model.joblib'
-dump(best_model, model_filename)
-
-print(f"Model saved to {model_filename}")
-
-best_model_loaded = load(model_filename)
-
-
-#%% Let's create some figures to show in the report:
-
-ml_dataset_filtered['log_income_pc_hat'] = best_model_loaded.predict(X_standardized_validation)
-
-ml_dataset_filtered['income_pc_hat'] = np.exp(ml_dataset_filtered['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
-
-#%% Figure 1: Distribution of predicted income vs true income
-plt.clf()
-sns.histplot(ml_dataset_filtered['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(ml_dataset_filtered['income_pc'], color='blue', kde=True, label='True Income', stat='density')
-plt.xlim(0, 3000)
-plt.legend()
-plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
-plt.show()
-
-#%% Figure 2: Distribution of predicted income vs true income by region
-ml_dataset_filtered['ubigeo_region'] = ml_dataset_filtered['ubigeo'].str[:4]
-
-n_rows = 5
-n_cols = 5
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20), sharex=True, sharey=True)
-
-for i, region in enumerate(ml_dataset_filtered['ubigeo_region'].unique()):
-    ax = axes[i // n_cols, i % n_cols]
-    region_data = ml_dataset_filtered[ml_dataset_filtered['ubigeo_region'] == region]
-    sns.histplot(region_data['income_pc_hat'], color='red', kde=True, label='Predicted Income', stat='density', ax=ax)
-    sns.histplot(region_data['income_pc'], color='blue', kde=True, label='True Income', stat='density', ax=ax)
-    ax.set_xlim(0, 3000)
-    ax.set_title(region)
-    ax.legend()
-    plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
-
-
-#%% Figure 3: Replicate poverty rate:
-
-ml_dataset_filtered['n_people'] = ml_dataset_filtered['mieperho'] * ml_dataset_filtered['pondera_i']
-household_weight = ml_dataset_filtered['n_people']/ml_dataset_filtered.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered['poor_685'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_685usd_ppp']) * household_weight
-ml_dataset_filtered['poor_365'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_365usd_ppp']) * household_weight
-ml_dataset_filtered['poor_215'] = (ml_dataset_filtered['income_pc'] <= ml_dataset_filtered['lp_215usd_ppp']) * household_weight
-ml_dataset_filtered['poor_hat_685'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_685usd_ppp']) * household_weight
-ml_dataset_filtered['poor_hat_365'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_365usd_ppp']) * household_weight
-ml_dataset_filtered['poor_hat_215'] = (ml_dataset_filtered['income_pc_hat'] <= ml_dataset_filtered['lp_215usd_ppp']) * household_weight
-
-porverty_comparison = ml_dataset_filtered.loc[:,['poor_685','poor_365','poor_215', 
-                                                'poor_hat_685','poor_hat_365','poor_hat_215']].sum()
-
-porverty_comparison = pd.DataFrame(porverty_comparison).rename(columns={0:'PovertyRate'}).reset_index()
-
-porverty_comparison[['Poverty Line', 'Type']] = porverty_comparison['index'].str.rsplit('_', n=1, expand=True)
-
-porverty_comparison = porverty_comparison.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
-
-# porverty_comparison.plot(kind='bar', figsize=(10, 6), color=['#1f77b4', '#ff7f0e'])  # Replace with your preferred colors
-porverty_comparison.plot(kind='bar', figsize=(10, 6))  # Replace with your preferred colors
-plt.title('Comparison of Actual vs Predicted Poverty by Line')
-plt.ylabel('Sum')
-plt.xlabel('Poverty Line')
-plt.xticks(rotation=45)
-plt.ylim(0, .5)
-plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
-
-#%% Figure 4: Replicate poverty rate (by region)
