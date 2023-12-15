@@ -28,18 +28,20 @@ def append_enaho_sedlac():
     
     list_enaho_datasets = []
 
-    for yy in range(2013, 2021):
+    for yy in range(2008, 2021):
+
+        print('Reading ENAHO data for year: ', yy)
         
         if yy >= 2013:
             enaho_yy = pd.read_stata(os.path.join(dpml.dataPath, 
                                                 dpml.raw,
                                                 'peru/data/SEDLAC - ENAHO Merged Data/',
-                                                dpml.geo_sedlac + str(yy) + '.dta'))
+                                                dpml.geo_sedlac + str(yy) + '.dta')).rename(columns={'ano_ocaux':'year'})
         else:
             enaho_yy = pd.read_stata(os.path.join(dpml.dataPath, 
                                                 dpml.raw,
                                                 'peru/data/SEDLAC - ENAHO Merged Data/',
-                                                dpml.onlygeo_sedlac + str(yy) + '.dta'))
+                                                dpml.onlygeo_sedlac + str(yy) + '.dta')).rename(columns={'ano_ocaux':'year'})
         
         # Filter out variables and obtain household level data:
         enaho_yy = filter_variables_and_obtain_household_level_data(enaho_yy)
@@ -68,7 +70,8 @@ def filter_variables_and_obtain_household_level_data(enaho_sedlac):
     """
 
     # Keep only relevant columns:
-    enaho_sedlac_filtered = enaho_sedlac.loc[:,['ubigeo','conglome','vivienda','hogar_ine','strata', 
+    enaho_sedlac_filtered = enaho_sedlac.loc[:,['ubigeo','conglome','dominio', 'estrato',
+                                                'vivienda','hogar_ine','strata', 
                                                 'year', 'mes', 'latitud','longitud',
                                                 'mieperho', 'ipcf_ppp17','lp_215usd_ppp',
                                                 'lp_365usd_ppp','lp_685usd_ppp','pondera_i']]
@@ -85,17 +88,10 @@ def filter_variables_and_obtain_household_level_data(enaho_sedlac):
     
 
 
-def read_appended_enaho_sedlac():
-
-    enaho_sedlac_pool = pd.read_csv(os.path.join(dpml.dataPath,dpml.working, 'enaho_sedlac_panel.csv'), index_col=False)
-
-    enaho_sedlac_pool.rename(columns={'ano_ocaux':'year'}, inplace=True)
-
-    return enaho_sedlac_pool
-
+# Run function:
 
 enaho_sedlac_panel = append_enaho_sedlac()
 
-# Read enaho sedlac
-enaho_sedlac_pool = read_appended_enaho_sedlac()
+
+
 
