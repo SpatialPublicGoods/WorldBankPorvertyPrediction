@@ -53,11 +53,11 @@ class DataPreparationForML:
         self.date = date
 
         # 4. define dependent variable:
-        self.depvar = 'income_pc'
+        self.depvar = 'log_income_pc'
         
 
         # 5. define independent variables:
-        self.indepvar_enaho = ['income_pc_lagged']
+        self.indepvar_enaho = ['income_pc_lagged', 'income_pc_lagged2', 'income_pc_lagged3', 'income_pc_lagged4']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
                                         'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
@@ -81,10 +81,12 @@ class DataPreparationForML:
         self.indepvar_cargo_vehicles = ['vehicles_tot', 'fab_5y_p', 'fab_10y_p', 'fab_20y_p',
             'fab_30y_p', 'pub_serv_p', 'payload_m', 'dry_weight_m',
             'gross_weight_m', 'length_m', 'width_m', 'height_m']
+        
+        self.indepvar_trend = ['trend' , 'trend2']
 
-        self.indepvars = (self.indepvar_enaho + 
-                          self.indepvar_police_reports + 
-                        #   self.indepvar_domestic_violence + 
+        self.indepvar_lagged_income = self.indepvar_enaho
+
+        self.indepvars = (self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
                           self.indepvar_cargo_vehicles)
         
         self.indepvars_weather = (self.indepvar_precipitation +
@@ -454,7 +456,7 @@ class DataPreparationForML:
         ml_dataset = ml_dataset.query('income_pc>0')
         
         # First pass dropping all missing values:
-        ml_dataset_filtered = (ml_dataset.query('year >= 2014')
+        ml_dataset_filtered = (ml_dataset.query('year >= 2013')
                                         .query('year <= 2019')
                                         .sample(frac=1) # Random shuffle
                                         .reset_index(drop=True) # Remove index
@@ -477,17 +479,17 @@ class DataPreparationForML:
         """
 
         # Define the independent variables to be used in the model:
-        indepvar_column_names = self.indepvars[1:] + self.indepvars_weather
+        indepvar_column_names = self.indepvars + self.indepvars_weather
 
         # Define dependent and independent variables:
-        Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True) 
-        X = ml_dataset_filtered.loc[:,['log_income_pc_lagged']  + indepvar_column_names]
+        Y = ml_dataset_filtered.loc[:,self.depvar].reset_index(drop=True) 
+        X = ml_dataset_filtered.loc[:,self.indepvar_lagged_income + indepvar_column_names + self.indepvar_trend]
         X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
 
         # Step 1: Impute missing values
         imputer = SimpleImputer(strategy='mean')
         X_imputed = imputer.fit_transform(X)
-        if scaler_X is None:
+        if scaler_X is None:  #(This is to demean test data)
             # Step 2: Standardize X
             scaler_X = StandardScaler()
             X_standardized = scaler_X.fit_transform(X_imputed)
@@ -508,7 +510,7 @@ class DataPreparationForML:
         X_standardized = pd.concat([X_standardized, ubigeo_dummies.astype(int), month_dummies.astype(int)], axis=1)
         
         # Step 6: Create interaction terms:
-        variables_to_interact = ['log_income_pc_lagged'] + indepvar_column_names
+        variables_to_interact = self.indepvar_lagged_income + indepvar_column_names
         # Create interaction terms
         for var in variables_to_interact:
             for dummy in ubigeo_dummies.columns:
@@ -571,12 +573,17 @@ if __name__ == '__main__':
                         .merge(max_temperature, on=['conglome', 'year', 'month'], how='left')
                         .merge(min_temperature, on=['conglome', 'year', 'month'], how='left')
                         )
-
+    
+    # Add trend and trend squared:
+    ml_dataset['trend'] = ((ml_dataset['year'] - ml_dataset['year'].min()) * 12 
+                                    + ml_dataset['month']) - ml_dataset['month'].min() + 1
+    
+    ml_dataset['trend2'] = ml_dataset['trend']**2
 
     ml_dataset.to_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + date +'.csv'))
 
 
-    # Get conglome pool:
+    # Get conglome pool (These are centroids to get weather data):
     conglome_panel = (enaho[['conglome', 'ubigeo', 'strata', 'latitud', 'longitud', 'year']]
                       .groupby(['conglome', 'ubigeo', 'strata','year'])
                       .mean()

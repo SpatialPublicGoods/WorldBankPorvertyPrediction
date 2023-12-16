@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2023-12-12' #datetime.today().strftime('%Y-%m-%d')
+date = '2023-12-15' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -46,6 +46,7 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .first()
                     .reset_index(drop=False)
                     )
+
 
 # Obtain filtered dataset:
 ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset)
