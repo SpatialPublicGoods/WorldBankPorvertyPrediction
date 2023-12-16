@@ -117,6 +117,11 @@ print(f"Lasso: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
 if hasattr(best_model, 'coef_'):
     print(f"Coefficients of the best model: {best_model.coef_}")
 
+# Save the Model
+model_filename = 'best_weighted_lasso_model.joblib'
+dump(best_model, 'best_weighted_lasso_model.joblib')
+print(f"Model saved to {model_filename}")
+
 
 #%% Get list of important variables according to Lasso:
 
@@ -168,9 +173,23 @@ plt.clf()
 
 predicted_income_validation = best_model.predict(X_standardized_validation)
 plt.clf()
-sns.histplot(predicted_income_validation, color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(Y_standardized_validation, color='blue', kde=True, label='True Income', stat='density')
+plt.figure(figsize=(10, 10))
+sns.histplot(pd.Series(predicted_income_validation).dropna(), 
+             color='red', 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='Predicted Income', 
+             stat='density')
+sns.histplot(Y_standardized_validation.dropna(), 
+             color='blue', 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='True Income', 
+             stat='density')
+# plt.xlim(0,2500)
 plt.legend()
-plt.savefig('../figures/prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
+plt.savefig('../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 plt.show()
 
