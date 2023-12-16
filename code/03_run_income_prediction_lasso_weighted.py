@@ -103,7 +103,7 @@ std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
 weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 2  # Increase the weights for the tail observations
+weights[tails] *= 5  # Increase the weights for the tail observations
 
 # Perform grid search with parallel processing
 n_jobs = 2  # Use -1 to use all processors
@@ -180,7 +180,7 @@ plt.clf()
 # Use the best model to predict (LASSO REGRESSION)
 
 ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
-                        .query('year==2019')
+                        .query('year==2018')
                         .sort_values(['date','conglome'])
                         .reset_index(drop=True)
                         )
@@ -208,5 +208,4 @@ sns.histplot(Y_standardized_validation.dropna(),
 # plt.xlim(0,2500)
 plt.legend()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
-plt.show()
 
