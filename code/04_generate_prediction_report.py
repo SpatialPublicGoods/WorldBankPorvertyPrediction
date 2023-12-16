@@ -119,7 +119,7 @@ sns.histplot(ml_dataset_filtered_validation['income_pc'],
 plt.xlim(0, 3000)
 plt.legend()
 plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
-
+print('Figure 1 saved')
 
 #%% Figure 1b (fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted): 
 # ECDF of predicted income vs true income
@@ -134,6 +134,7 @@ plt.legend()
 plt.xlabel('Income')
 plt.ylabel('Cumulative Distribution')
 plt.savefig('../figures/fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted.pdf', bbox_inches='tight')
+print('Figure 1b saved')
 
 #%% Figure 2 (fig2_prediction_vs_true_income_by_region_lasso_training_weighted): 
 # Distribution of predicted income vs true income by region
@@ -169,6 +170,8 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     ax.legend()
     plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
 
+print('Figure 2 saved')
+
 #%% Figure 3 (fig3_prediction_vs_true_poverty_rate_national): 
 # Poverty Rate National 
 #-----------------------------------------------------------------------------------
@@ -200,6 +203,7 @@ plt.xticks(rotation=45)
 plt.ylim(0, .5)
 plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
+print('Figure 3 saved')
 
 #%% Figure 4 (fig4_prediction_vs_true_poverty_rate_regions): 
 # Replicate poverty rate (by region)
@@ -245,7 +249,7 @@ for j in range(i + 1, n_rows * n_cols):
 
 plt.savefig('../figures/fig4_prediction_vs_true_poverty_rate_regions.pdf', bbox_inches='tight')
 
-
+print('Figure 4 saved')
 
 #%% Figure 5 (fig5_average_income_time_series): 
 # Time series of average income (Yearly)
@@ -287,7 +291,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig5_average_income_time_series.pdf', bbox_inches='tight')
 
-
+print('Figure 5 saved')
 
 #%% Figure 6 (fig6_average_income_time_series_by_area): 
 # Time series average income plot by area (Yearly)
@@ -337,6 +341,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig6_average_income_time_series_by_area.pdf', bbox_inches='tight')
 
+print('Figure 6 saved')
 
 #%% Figure 7: (fig7_average_income_time_series_quarterly)
 # Time series average income (Quarterly)
@@ -378,6 +383,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig7_average_income_time_series_quarterly.pdf', bbox_inches='tight')
 
+print('Figure 7 saved')
 
 
 #%% Figure 8 (fig8_poverty_rate_time_series): 
@@ -431,6 +437,8 @@ plt.ylabel('Poverty Rate')
 plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig8_poverty_rate_time_series.pdf', bbox_inches='tight')
+
+print('Figure 8 saved')
 
 
 #%% Figure 8a (fig8a_poverty_rate_time_series_urbano): 
@@ -489,6 +497,8 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig8a_poverty_rate_time_series_urbano.pdf', bbox_inches='tight')
 
+print('Figure 8a saved')
+
 
 #%% Figure 8b (fig8a_poverty_rate_time_series_urbano): 
 # Poverty Rate Rural (Yearly)
@@ -517,6 +527,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig8b_poverty_rate_time_series_rural.pdf', bbox_inches='tight')
 
+print('Figure 8b saved')
 
 #%% Figure 8c (fig8a_poverty_rate_time_series_urbano): 
 # Poverty Rate Urbano (Yearly)
@@ -575,6 +586,7 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig8c_poverty_rate_time_series_lima.pdf', bbox_inches='tight')
 
+print('Figure 8c saved')
 
 #%% Figure 9 (fig9_gini_time_series): 
 # Gini Coefficient
@@ -610,7 +622,10 @@ plt.legend()
 plt.grid(True)
 plt.savefig('../figures/fig9_gini_time_series.pdf', bbox_inches='tight')
 
+print('Figure 9 saved')
 
+
+print('End of code: 04_generate_prediction_report.py')
 
 
 

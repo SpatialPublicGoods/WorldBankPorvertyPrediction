@@ -209,3 +209,5 @@ sns.histplot(Y_standardized_validation.dropna(),
 plt.legend()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 
+
+print('End of code: 03_run_income_prediction_lasso_weighted.py')
