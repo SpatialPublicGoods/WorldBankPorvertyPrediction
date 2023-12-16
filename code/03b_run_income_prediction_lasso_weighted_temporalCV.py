@@ -68,7 +68,7 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
 
-#%% Run Lasso Regression (Regular Cross Validation):
+#%% Run Lasso Regression (Temporal Cross Validation):
 
 # Define the model
 lasso = Lasso()
@@ -77,11 +77,6 @@ lasso = Lasso()
 param_grid = {'alpha': [0.0001, 0.0005, 0.001, 0.005, 0.01]}
 param_grid = {'alpha': [0.0001, 0.001]}
 
-# Define the number of folds for cross-validation
-n_folds = 5
-
-# Define the number of jobs for parallelization
-n_jobs = 10  # Use -1 to use all processors
 
 # Initialize variables to store the best model
 best_score = float('inf')
@@ -98,10 +93,12 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
     rmse = np.sqrt(np.mean((predictions - y_test_fold) ** 2))
     return rmse, params, model_clone
 
-# Custom cross-validation with sample weighting
-kf = KFold(n_splits=n_folds)
+# Custom time panel splitter
+# Replace 'time_column' and 'split_time' with your actual column name and split time
+custom_splitter = CustomTimePanelSplit(time_column='date', split_time='2017-12-31')
 
 # Calculate weights for the entire dataset: higher for tail observations
+# Assuming Y_standardized_train is your target variable
 std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
@@ -109,9 +106,10 @@ weights = np.ones(Y_standardized_train.shape)
 weights[tails] *= 5  # Increase the weights for the tail observations
 
 # Perform grid search with parallel processing
+n_jobs = 2  # Use -1 to use all processors
 results = Parallel(n_jobs=n_jobs)(
     delayed(fit_model)(train_index, test_index, lasso, {'alpha': alpha}, X_standardized_train, Y_standardized_train, weights)
-    for alpha in param_grid['alpha'] for train_index, test_index in kf.split(X_standardized_train)
+    for alpha in param_grid['alpha'] for train_index, test_index in custom_splitter.split(ml_dataset_filtered_train)
 )
 
 
@@ -133,7 +131,9 @@ dump(best_model, 'best_weighted_lasso_model.joblib')
 print(f"Model saved to {model_filename}")
 
 
+
 #%% Get list of important variables according to Lasso:
+
 
 # Get both the coefficients values and names 
 lasso_coefs = best_model.coef_  # Replace with your actual coefficients
@@ -174,6 +174,7 @@ plt.xlabel('Variables')
 plt.xticks(rotation=90,fontsize=8)
 plt.yticks(rotation=0,fontsize=8)
 plt.savefig('../figures/variable_contribution_lasso_regression_tails_weighted.pdf', bbox_inches='tight')
+plt.show()
 plt.clf()
 
 #%%

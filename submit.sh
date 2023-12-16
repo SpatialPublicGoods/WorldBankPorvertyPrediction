@@ -24,8 +24,8 @@
 
 # Error and Output file names
 
-#SBATCH --output=slurm-%j.out
-#SBATCH --error=slurm-%j.err
+#SBATCH --output=slurm-test-%j.out
+#SBATCH --error=slurm-test-%j.err
 
 #---------------------------------------------------------------------------------
 # Print some useful variables
