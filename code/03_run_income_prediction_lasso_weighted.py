@@ -18,6 +18,7 @@ from joblib import Parallel, delayed, dump, load
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 from sklearn.linear_model import Lasso
+from ml_utils import CustomTimePanelSplit
 import numpy as np
 from joblib import Parallel, delayed
 
@@ -47,15 +48,24 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .reset_index(drop=False)
                     )
 
+month_to_quarter = {1:1, 2:1, 3:1, 
+                    4:4, 5:4, 6:4, 
+                    7:7, 8:7, 9:7, 
+                    10:10, 11:10, 12:10}
+
+ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
+
+ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
+
 
 # Obtain filtered dataset:
-ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset)
+ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
+                                .query('year<=2018')
+                                .sort_values(['date','conglome'])
+                                .reset_index(drop=True)
+                                )
 
-Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered.query('year<=2018'))
-
-ml_dataset_filtered = dpml.filter_ml_dataset(ml_dataset).query('year==2019')
-
-Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered.query('year==2019'),scaler_X_train, scaler_Y_train)
+Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
 
 #%% Run Lasso Regression:
@@ -67,11 +77,6 @@ lasso = Lasso()
 param_grid = {'alpha': [0.0001, 0.0005, 0.001, 0.005, 0.01]}
 param_grid = {'alpha': [0.0001, 0.001]}
 
-# Define the number of folds for cross-validation
-n_folds = 5
-
-# Define the number of jobs for parallelization
-n_jobs = 10  # Use -1 to use all processors
 
 # Initialize variables to store the best model
 best_score = float('inf')
@@ -88,20 +93,23 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
     rmse = np.sqrt(np.mean((predictions - y_test_fold) ** 2))
     return rmse, params, model_clone
 
-# Custom cross-validation with sample weighting
-kf = KFold(n_splits=n_folds)
+# Custom time panel splitter
+# Replace 'time_column' and 'split_time' with your actual column name and split time
+custom_splitter = CustomTimePanelSplit(time_column='date', split_time='2017-12-31')
 
 # Calculate weights for the entire dataset: higher for tail observations
+# Assuming Y_standardized_train is your target variable
 std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
 weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 5  # Increase the weights for the tail observations
+weights[tails] *= 2  # Increase the weights for the tail observations
 
 # Perform grid search with parallel processing
+n_jobs = 2  # Use -1 to use all processors
 results = Parallel(n_jobs=n_jobs)(
     delayed(fit_model)(train_index, test_index, lasso, {'alpha': alpha}, X_standardized_train, Y_standardized_train, weights)
-    for alpha in param_grid['alpha'] for train_index, test_index in kf.split(X_standardized_train)
+    for alpha in param_grid['alpha'] for train_index, test_index in custom_splitter.split(ml_dataset_filtered_train)
 )
 
 
@@ -171,7 +179,16 @@ plt.clf()
 #%%
 # Use the best model to predict (LASSO REGRESSION)
 
+ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
+                        .query('year==2019')
+                        .sort_values(['date','conglome'])
+                        .reset_index(drop=True)
+                        )
+
+Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train)
+
 predicted_income_validation = best_model.predict(X_standardized_validation)
+
 plt.clf()
 plt.figure(figsize=(10, 10))
 sns.histplot(pd.Series(predicted_income_validation).dropna(), 

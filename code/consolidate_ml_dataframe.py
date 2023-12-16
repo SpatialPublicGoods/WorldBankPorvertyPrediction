@@ -57,7 +57,7 @@ class DataPreparationForML:
         
 
         # 5. define independent variables:
-        self.indepvar_enaho = ['income_pc_lagged', 'income_pc_lagged2', 'income_pc_lagged3', 'income_pc_lagged4']
+        self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2', 'log_income_pc_lagged3', 'log_income_pc_lagged4']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
                                         'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
