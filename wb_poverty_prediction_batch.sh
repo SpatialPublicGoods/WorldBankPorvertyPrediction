@@ -20,7 +20,7 @@
 #---------------------------------------------------------------------------------
 # Job specific name (helps organize and track progress of jobs)
 
-#SBATCH --job-name=sample_slurm_job    # user-defined job name
+#SBATCH --job-name=wb_pred    # user-defined job name
 
 # Error and Output file names
 
@@ -50,11 +50,11 @@ module load python/booth/3.10    # load python module
 
 cd code
 
-# echo "Run Python Script: 01_describe_ml_consolidated_dataset.py"
-# python3 '01_describe_ml_consolidated_dataset.py'
+echo "Run Python Script: 01_describe_ml_consolidated_dataset.py"
+python3 "01_describe_ml_consolidated_dataset.py"
 
-# echo "Run Python Script: 03_run_income_prediction_lasso_weighted.py"
-# python3 '03_run_income_prediction_lasso_weighted.py'
+echo "Run Python Script: 03_run_income_prediction_lasso_weighted.py"
+python3 "03_run_income_prediction_lasso_weighted.py"
 
 echo "Run Python Script: 04_generate_prediction_report.py"
 python3 "04_generate_prediction_report.py"
@@ -62,4 +62,14 @@ python3 "04_generate_prediction_report.py"
 #---------------------------------------------------------------------------------
 # Send an email with the slurm-test-%j.out file as an attachment
 
-mailx -s "Slurm Job Completed" -a "slurm-test-$SLURM_JOB_ID.out" francocalle93@gmail.com < /dev/null
+echo "Send email to Franco Calle"
+
+cd '..'
+
+if [ -f "slurm-$SLURM_JOB_ID.out" ]; then
+    echo -e "Subject: Slurm Job Completed\n\n$(cat "slurm-$SLURM_JOB_ID.out")" | sendmail francocalle93@gmail.com
+else
+    echo -e "Subject: Slurm Job Completed\n\nThe slurm-$SLURM_JOB_ID.out file was not found." | sendmail francocalle93@gmail.com
+fi
+
+echo "Done"

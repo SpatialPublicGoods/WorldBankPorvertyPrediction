@@ -56,8 +56,9 @@ sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged'],
 # plt.xlim(5,12)
 # plt.ylim(5,12)
 plt.savefig('../figures/figA_income_vs_lagged_income_log_log_scatterplot.pdf', bbox_inches='tight')
-plt.show()
 plt.clf()
+
+print('Figure Aa saved...')
 
 #Lag 2:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged2'], 
@@ -68,8 +69,8 @@ sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged2'],
 # plt.xlim(5,12)
 # plt.ylim(5,12)
 plt.savefig('../figures/figA_income_vs_lagged2_income_log_log_scatterplot.pdf', bbox_inches='tight')
-plt.show()
 plt.clf()
+print('Figure Ab saved...')
 
 #Lag 3:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged3'], 
@@ -80,8 +81,8 @@ sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged3'],
 # plt.xlim(5,12)
 # plt.ylim(5,12)
 plt.savefig('../figures/figA_income_vs_lagged3_income_log_log_scatterplot.pdf', bbox_inches='tight')
-plt.show()
 plt.clf()
+print('Figure Ac saved...')
 
 #Lag 4:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged4'], 
@@ -92,8 +93,8 @@ sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged4'],
 # plt.xlim(5,12)
 # plt.ylim(5,12)
 plt.savefig('../figures/figA_income_vs_lagged4_income_log_log_scatterplot.pdf', bbox_inches='tight')
-plt.show()
 plt.clf()
+print('Figure Ac saved...')
 
 
 #%% 2. Histograms for numerical variables: 
@@ -125,6 +126,7 @@ for i, col in enumerate(X.columns):
 # Show the entire grid plot
 plt.savefig('../figures/figB_histograms_ml_dataset_variables.pdf', bbox_inches='tight')
 plt.clf()
+print('Figure B saved...')
 
 
 #%%
@@ -159,6 +161,7 @@ for i, col in enumerate(X.columns[:-1]):
 
 plt.savefig('../figures/figC_correlation_ml_dataset_variables.pdf', bbox_inches='tight')
 plt.clf()
+print('Figure C saved...')
 
 #%%
 # 3. Correlations between weather variables and outcome: 
@@ -191,6 +194,7 @@ for i, col in enumerate(X_weather.columns[1:]):
 
 plt.savefig('../figures/figD_correlation_ml_dataset_weather_variables.pdf', bbox_inches='tight')
 plt.clf()
+print('Figure D saved...')
 
 #%%
 # 4. Get share of missing values in each variable:
@@ -201,4 +205,9 @@ X.isna().mean().plot(kind='barh')
 plt.xlabel('Share of Missing Values')
 plt.ylabel('')
 plt.savefig('../figures/figE_share_of_missings.pdf', bbox_inches='tight')
-plt.show()
+plt.clf()
+print('Figure E saved...')
+
+#%%
+
+print('End of code: 01_describe_ml_consolidated_dataset.py')
