@@ -83,7 +83,8 @@ class DataPreparationForML:
             'fab_30y_p', 'pub_serv_p', 'payload_m', 'dry_weight_m',
             'gross_weight_m', 'length_m', 'width_m', 'height_m']
         
-        self.indepvar_trend = ['trend' , 'trend2']
+        # self.indepvar_trend = ['trend' , 'trend2']
+        self.indepvar_trend = []
 
         self.indepvar_lagged_income = self.indepvar_enaho
 
