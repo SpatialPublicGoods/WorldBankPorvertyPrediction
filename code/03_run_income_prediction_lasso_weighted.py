@@ -6,16 +6,14 @@ import matplotlib.dates as mdates
 import numpy as np
 from datetime import datetime
 from consolidate_ml_dataframe import DataPreparationForML
-from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed, dump, load
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, GroupKFold, GridSearchCV, cross_val_score
 from sklearn.base import clone
 from sklearn.linear_model import Lasso
 from ml_utils import CustomTimePanelSplit
@@ -57,6 +55,7 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5])
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
@@ -65,8 +64,10 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
                                 .reset_index(drop=True)
                                 )
 
-Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
+ml_dataset_filtered_train['cv_id'] = ml_dataset_filtered_train['ubigeo'].str[:4] + '-' + ml_dataset_filtered_train['urbano'].astype(int).astype(str) + '-' + ml_dataset_filtered_train['year'].astype(str)
+
+Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
 #%% Run Lasso Regression (Regular Cross Validation):
 
@@ -99,7 +100,10 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
     return rmse, params, model_clone
 
 # Custom cross-validation with sample weighting
-kf = KFold(n_splits=n_folds)
+# kf = KFold(n_splits=n_folds)
+
+gkf = GroupKFold(n_splits=n_folds)
+
 
 # Calculate weights for the entire dataset: higher for tail observations
 std_dev = np.std(Y_standardized_train)
@@ -111,7 +115,7 @@ weights[tails] *= 5  # Increase the weights for the tail observations
 # Perform grid search with parallel processing
 results = Parallel(n_jobs=n_jobs)(
     delayed(fit_model)(train_index, test_index, lasso, {'alpha': alpha}, X_standardized_train, Y_standardized_train, weights)
-    for alpha in param_grid['alpha'] for train_index, test_index in kf.split(X_standardized_train)
+    for alpha in param_grid['alpha'] for train_index, test_index in gkf.split(X_standardized_train, groups = ml_dataset_filtered_train['cv_id']) #kf.split(X_standardized_train)
 )
 
 
