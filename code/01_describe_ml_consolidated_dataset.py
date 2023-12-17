@@ -108,7 +108,7 @@ fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))  # Adjust the figure 
 fig.tight_layout(pad=5.0)  # Adjust the spacing between subplots as needed
 
 # Loop over the variables in X and create a histogram for each
-for i, col in enumerate(X.columns):
+for i, col in enumerate(X.columns[:-1]):
     
     # Find the position of the subplot
     row_num = i // n_cols

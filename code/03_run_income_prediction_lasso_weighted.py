@@ -81,7 +81,7 @@ param_grid = {'alpha': [0.0001, 0.001]}
 n_folds = 5
 
 # Define the number of jobs for parallelization
-n_jobs = 10  # Use -1 to use all processors
+n_jobs = 5  # Use -1 to use all processors
 
 # Initialize variables to store the best model
 best_score = float('inf')

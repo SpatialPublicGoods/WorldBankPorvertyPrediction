@@ -50,6 +50,8 @@ module load python/booth/3.10    # load python module
 
 cd code
 
+ulimit -n 4096
+
 echo "Run Python Script: 01_describe_ml_consolidated_dataset.py"
 python3 "01_describe_ml_consolidated_dataset.py"
 
