@@ -458,7 +458,7 @@ class DataPreparationForML:
         ml_dataset = ml_dataset.query('income_pc>0')
         
         # First pass dropping all missing values:
-        ml_dataset_filtered = (ml_dataset.query('year >= 2013')
+        ml_dataset_filtered = (ml_dataset.query('year >= 2014')
                                         .query('year <= 2019')
                                         .sample(frac=1) # Random shuffle
                                         .reset_index(drop=True) # Remove index
