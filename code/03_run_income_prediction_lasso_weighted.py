@@ -76,8 +76,8 @@ Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpm
 lasso = Lasso()
 
 # Define the parameter grid
-param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
-# param_grid = {'alpha': [0.0001, 0.001]}
+# param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
+param_grid = {'alpha': [0.0001, 0.001]}
 
 # Define the number of folds for cross-validation
 n_folds = 5
@@ -107,12 +107,18 @@ gkf = GroupKFold(n_splits=n_folds)
 
 
 # Define the number of bins for the histogram
-n_bins = 30  # You can adjust this based on your data
-hist, bin_edges = np.histogram(Y_standardized_train, bins=n_bins, density=True)
-bin_index = np.digitize(Y_standardized_train, bin_edges) - 1
-bin_index[bin_index == n_bins] = n_bins - 1
-weights = 1 / (hist[bin_index] + 1e-6)
+# n_bins = 30  # You can adjust this based on your data
+# hist, bin_edges = np.histogram(Y_standardized_train, bins=n_bins, density=True)
+# bin_index = np.digitize(Y_standardized_train, bin_edges) - 1
+# bin_index[bin_index == n_bins] = n_bins - 1
+# weights = 1 / (hist[bin_index] + 1e-6)
 
+# Calculate weights for the entire dataset: higher for tail observations
+std_dev = np.std(Y_standardized_train)
+mean = np.mean(Y_standardized_train)
+tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
+weights = np.ones(Y_standardized_train.shape)
+weights[tails] *= 2  # Increase the weights for the tail observations
 
 
 # Perform grid search with parallel processing
