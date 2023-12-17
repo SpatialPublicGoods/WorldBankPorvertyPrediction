@@ -17,6 +17,7 @@ from sklearn.model_selection import KFold, GroupKFold, GridSearchCV, cross_val_s
 from sklearn.base import clone
 from sklearn.linear_model import Lasso
 from ml_utils import CustomTimePanelSplit
+from sklearn.neighbors import KernelDensity
 import numpy as np
 from joblib import Parallel, delayed
 
@@ -75,7 +76,7 @@ Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpm
 lasso = Lasso()
 
 # Define the parameter grid
-param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 1]}
+param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.0001, 0.001]}
 
 # Define the number of folds for cross-validation
@@ -105,12 +106,14 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
 gkf = GroupKFold(n_splits=n_folds)
 
 
-# Calculate weights for the entire dataset: higher for tail observations
-std_dev = np.std(Y_standardized_train)
-mean = np.mean(Y_standardized_train)
-tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
-weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 5  # Increase the weights for the tail observations
+# Define the number of bins for the histogram
+n_bins = 30  # You can adjust this based on your data
+hist, bin_edges = np.histogram(Y_standardized_train, bins=n_bins, density=True)
+bin_index = np.digitize(Y_standardized_train, bin_edges) - 1
+bin_index[bin_index == n_bins] = n_bins - 1
+weights = 1 / (hist[bin_index] + 1e-6)
+
+
 
 # Perform grid search with parallel processing
 results = Parallel(n_jobs=n_jobs)(
