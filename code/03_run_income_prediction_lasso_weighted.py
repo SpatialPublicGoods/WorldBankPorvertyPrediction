@@ -74,8 +74,8 @@ Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpm
 lasso = Lasso()
 
 # Define the parameter grid
-param_grid = {'alpha': [0.0001, 0.0005, 0.001, 0.005, 0.01]}
-param_grid = {'alpha': [0.0001, 0.001]}
+param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 1]}
+# param_grid = {'alpha': [0.0001, 0.001]}
 
 # Define the number of folds for cross-validation
 n_folds = 5
@@ -168,9 +168,8 @@ mask = coef_matrix.astype(float) == 0
 plt.figure(figsize=(20, 10))  # Adjust figure size as needed
 sns.heatmap(np.abs(coef_matrix.astype(float)), cmap=cmap, annot=False, mask=mask, 
             linewidths=0.1, linecolor='black')
-plt.title('Lasso Coefficients Heatmap')
-plt.ylabel('Categories (including Non-Interaction)')
-plt.xlabel('Variables')
+# plt.ylabel('Categories (including Non-Interaction)')
+# plt.xlabel('Variables')
 plt.xticks(rotation=90,fontsize=8)
 plt.yticks(rotation=0,fontsize=8)
 plt.savefig('../figures/variable_contribution_lasso_regression_tails_weighted.pdf', bbox_inches='tight')
@@ -180,7 +179,7 @@ plt.clf()
 # Use the best model to predict (LASSO REGRESSION)
 
 ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
-                        .query('year==2018')
+                        .query('year==2019')
                         .sort_values(['date','conglome'])
                         .reset_index(drop=True)
                         )
