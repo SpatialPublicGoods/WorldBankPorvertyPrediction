@@ -118,7 +118,7 @@ std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
 weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 2  # Increase the weights for the tail observations
+weights[tails] *= 5  # Increase the weights for the tail observations
 
 
 # Perform grid search with parallel processing
