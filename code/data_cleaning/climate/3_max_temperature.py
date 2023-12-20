@@ -105,6 +105,11 @@ file_m = os.path.join(d1_path, 'clusters.csv')
 df_m   = pd.read_csv(file_m, encoding='iso-8859-1', on_bad_lines='skip')
 df2 = pd.merge(df_m, df, on=['conglome', 'year', 'month'], how='left', indicator=True)
 
+
+#--------------
+# 
+#--------------
+
 # %%
 
 
