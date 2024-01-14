@@ -1,26 +1,63 @@
 \section{Data and Summary Statistics:}
 
 \begin{figure}[H]
+    \caption{Correlation of log(Income) with Lagged Conglomerate Log Income}
     \centering
-    \caption{Income vs Lagged Income (log-log)}
-    \includegraphics{../figures/income_vs_lagged_income_log_log_scatterplot.pdf}
-    \label{fig:enter-label}
-\end{figure}
-
-
-\begin{figure}[H]
-    \centering
-    \caption{Correlation between variables}
-    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/correlation_ml_dataset_variables.pdf}}
-    \label{fig:enter-label}
-\end{figure}
+         \centering
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/figA_income_vs_lagged_income_log_log_scatterplot.pdf}
+             \caption{Lag: t-1}
+         \end{subfigure}
+         \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/figA_income_vs_lagged2_income_log_log_scatterplot.pdf}
+             \caption{Lag: t-2}
+         \end{subfigure} 
+          \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/figA_income_vs_lagged3_income_log_log_scatterplot.pdf}
+             \caption{Lag: t-3}
+         \end{subfigure} 
+          \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/figA_income_vs_lagged4_income_log_log_scatterplot.pdf}
+             \caption{Lag: t-4}
+         \end{subfigure} 
+    \subcaption*{Note:} 
+    \end{figure}
 
 
 \begin{figure}[H]
     \centering
     \caption{Distribution for each variable}
-    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/histograms_ml_dataset_variables.pdf}}
+    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/figB_histograms_ml_dataset_variables.pdf}}
     \label{fig:enter-label}
 \end{figure}
 
 
+\begin{figure}[H]
+    \centering
+    \caption{Correlation of log(Income) with variables}
+    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/figC_correlation_ml_dataset_variables.pdf}}
+    \label{fig:enter-label}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \caption{Correlation of log(Income) with Weather Variables}
+    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/figD_correlation_ml_dataset_weather_variables.pdf}}
+    \label{fig:enter-label}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \caption{Share of Missing Values}
+    \rotatebox[origin=c]{90}{\includegraphics[width=1.2\textwidth]{../figures/figE_share_of_missings.pdf}}
+    \label{fig:enter-label}
+\end{figure}
