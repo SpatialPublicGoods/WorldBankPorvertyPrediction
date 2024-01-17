@@ -41,6 +41,7 @@ class DataPreparationForML:
         self.cargo_vehicles = 'cargo_vehicles.csv'
         self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
         self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
+        self.nightlights_file = '1_raw/peru/big_data/other/nightlight/Nightlights_V01.csv'
         self.precipitation = '1_raw/peru/big_data/other/clima/Precipitation_V02.csv'
         self.panel_conglomerates = '1_raw/peru/data/conglomerado_centroidehogaresporconglomerado_2013-2021.csv' 
 
@@ -75,7 +76,10 @@ class DataPreparationForML:
                                             'Std_temperature_max', 'Median_temperature_max', 'Range_temperature_max']        
 
         self.indepvar_temperature_min =   ['Min_temperature_min', 'Max_temperature_min', 'Mean_temperature_min', 
-                                           'Std_temperature_min', 'Median_temperature_min', 'Range_temperature_min']        
+                                           'Std_temperature_min', 'Median_temperature_min', 'Range_temperature_min']
+
+        self.indepvar_nightlights = ['min_nightlight','max_nightlight','mean_nightlight',
+                                     'stdDev_nightlight','median_nightlight','range_nightlight']        
 
         self.indepvar_domestic_violence = ['cases_tot']
 
@@ -89,11 +93,12 @@ class DataPreparationForML:
         self.indepvar_lagged_income = self.indepvar_enaho
 
         self.indepvars = (self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
-                          self.indepvar_cargo_vehicles)
+                          self.indepvar_cargo_vehicles )
         
-        self.indepvars_weather = (self.indepvar_precipitation +
+        self.indepvars_geodata = (self.indepvar_precipitation +
                                     self.indepvar_temperature_max +
-                                    self.indepvar_temperature_min)
+                                    self.indepvar_temperature_min + 
+                                    self.indepvar_nightlights)
 
 
     def read_enaho_sedlac(self):
@@ -309,6 +314,47 @@ class DataPreparationForML:
         return precipitation
     
 
+    def read_nightlights(self):
+
+        """
+        This function reads the precipitation data and returns a dataframe with the following variables:s
+        """
+
+        #--------------
+        # Opening main data
+        #--------------
+        df = pd.read_csv(os.path.join(self.dataPath, self.nightlights_file), encoding='iso-8859-1', on_bad_lines='skip')
+
+        #--------------
+        # Creating variables
+        #--------------
+        # year
+        df['year'] = ((df['month'] - 1) // 12) + 2014
+
+        # month
+        df['month'] = df['month'] % 12
+        df.loc[df['month'] == 0, 'month'] = 12
+
+        #--------------
+        # Droping
+        #--------------
+
+        nightlights = df.copy() 
+        # nightlights = nightlights.drop('Month', axis=1)
+
+        #--------------
+        # Renaming
+        #--------------
+        nightlights.rename(columns={'Conglomerado ID': 'conglome'}, inplace=True)
+
+        nightlights.columns = [col  
+                            if col in ['conglome','year','month'] 
+                            else col + '_nightlight' 
+                            for col in nightlights.columns
+                            ]
+
+
+        return nightlights
 
 
     def read_min_temperature(self):
@@ -481,7 +527,7 @@ class DataPreparationForML:
         """
 
         # Define the independent variables to be used in the model:
-        indepvar_column_names = self.indepvars + self.indepvars_weather
+        indepvar_column_names = self.indepvars + self.indepvars_geodata
 
         # Define dependent and independent variables:
         Y = ml_dataset_filtered.loc[:,self.depvar].reset_index(drop=True) 
@@ -562,6 +608,8 @@ if __name__ == '__main__':
     cargo_vehicles = dpml.read_cargo_vehicles()
 
     precipitation = dpml.read_precipitation()
+
+    nightlights = dpml.read_nightlights()
     
     max_temperature = dpml.read_max_temperature()
     
@@ -572,6 +620,7 @@ if __name__ == '__main__':
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                         .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
+                        .merge(nightlights, on=['conglome', 'year', 'month'], how='left')
                         .merge(max_temperature, on=['conglome', 'year', 'month'], how='left')
                         .merge(min_temperature, on=['conglome', 'year', 'month'], how='left')
                         )

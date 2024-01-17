@@ -30,7 +30,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2023-12-12' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-01-14' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -66,11 +66,11 @@ def filter_ml_dataset(ml_dataset):
 
 ml_dataset_filtered = filter_ml_dataset(ml_dataset)
 
-indepvar_column_names = ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather
+indepvar_column_names = ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_geodata
 
 # Define dependent and independent variables:
 Y = ml_dataset_filtered.loc[:,'log_income_pc'].reset_index(drop=True) # X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + dpml.indepvars[2:]]
-X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_weather]
+X = ml_dataset_filtered.loc[:,['log_income_pc_lagged'] + ['mieperho'] + dpml.indepvars[2:] + dpml.indepvars_geodata]
 X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
 
 # Step 1: Impute missing values
@@ -95,7 +95,7 @@ month_dummies = pd.get_dummies(ml_dataset_filtered['month'], prefix='month', dro
 X_standardized = pd.concat([X_standardized, ubigeo_dummies.astype(int), month_dummies.astype(int)], axis=1)
 
 # Step 6: Create interaction terms:
-variables_to_interact = ['log_income_pc_lagged'] + dpml.indepvars[2:] + dpml.indepvars_weather
+variables_to_interact = ['log_income_pc_lagged'] + dpml.indepvars[2:] + dpml.indepvars_geodata
 
 # Create interaction terms
 for var in variables_to_interact:

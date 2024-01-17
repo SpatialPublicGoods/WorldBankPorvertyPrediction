@@ -15,7 +15,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2023-12-15' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-01-14' # date = '2023-12-15' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 
@@ -35,7 +35,7 @@ Y = ml_dataset_filtered.loc[:,'log_income_pc']
 
 X = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvar_lagged_income + dpml.indepvars]
 
-X_weather = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars_weather]
+X_geodata = ml_dataset_filtered.loc[:,[dpml.depvar] + dpml.indepvars_geodata]
 
 
 
@@ -101,10 +101,10 @@ print('Figure Ac saved...')
 #--------------------------------------------------------------
 
 # Define the grid size
-n_rows = 5
-n_cols = 6
+n_rows = 6
+n_cols = 5
 
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))  # Adjust the figure size as needed
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))  # Adjust the figure size as needed
 fig.tight_layout(pad=5.0)  # Adjust the spacing between subplots as needed
 
 # Loop over the variables in X and create a histogram for each
@@ -134,11 +134,11 @@ print('Figure B saved...')
 #--------------------------------------------------------------
 
 # Define the grid size for the subplot
-n_rows = 5
-n_cols = 6
+n_rows = 6
+n_cols = 5
 
 # Create a figure with subplots
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))  # Adjust the figure size as needed
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))  # Adjust the figure size as needed
 fig.tight_layout(pad=5.0)  # Adjust the spacing between subplots as needed
 
 # Loop over the variables in X and create a binscatter plot for each
@@ -168,22 +168,22 @@ print('Figure C saved...')
 #--------------------------------------------------------------
 
 # Define the grid size for the subplot
-n_rows = 5
+n_rows = 6
 n_cols = 4
 
 # Create a figure with subplots
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))  # Adjust the figure size as needed
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))  # Adjust the figure size as needed
 fig.tight_layout(pad=5.0)  # Adjust the spacing between subplots as needed
 
 # Loop over the variables in X and create a binscatter plot for each
-for i, col in enumerate(X_weather.columns[1:]):
+for i, col in enumerate(X_geodata.columns[1:]):
     # Find the position of the subplot
     row_num = i // n_cols
     col_num = i % n_cols    
     # Create binscatter plot for numerical data
-    if X_weather[col].dtype in ['int64', 'float64']:
+    if X_geodata[col].dtype in ['int64', 'float64']:
         # Plot the binscatter plot
-        sns.regplot(x=np.log(X_weather[col] + 1), 
+        sns.regplot(x=np.log(X_geodata[col] + 1), 
                     y=Y, 
                     ax=axes[row_num, col_num],
                     scatter_kws={'alpha':0.5}, 
