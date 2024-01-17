@@ -55,11 +55,14 @@ ulimit -n 4096
 echo "Run Python Script: 01_describe_ml_consolidated_dataset.py"
 python3 "01_describe_ml_consolidated_dataset.py"
 
-echo "Run Python Script: 03_run_income_prediction_lasso_weighted.py"
-python3 "03_run_income_prediction_lasso_weighted.py"
+echo "Run Python Script: 02_run_income_prediction_ml.py"
+python3 "02_run_income_prediction_ml.py"
 
-echo "Run Python Script: 04_generate_prediction_report.py"
-python3 "04_generate_prediction_report.py"
+# echo "Run Python Script: 03_run_income_prediction_lasso_weighted.py"
+# python3 "03_run_income_prediction_lasso_weighted.py"
+
+# echo "Run Python Script: 04_generate_prediction_report.py"
+# python3 "04_generate_prediction_report.py"
 
 #---------------------------------------------------------------------------------
 # Send an email with the slurm-test-%j.out file as an attachment

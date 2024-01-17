@@ -16,7 +16,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Lasso, Ridge
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, dump, load
 
 
 
@@ -117,7 +117,7 @@ X_standardized_train = X_standardized.iloc[validation_sample_size:,:]
 
 models = {
     # "Linear Regression": (LinearRegression(), {}),
-    "Lasso": (Lasso(), {'alpha': [0.0001, 0.001, 0.01, 0.1, 10, 100]}),
+    "Lasso": (Lasso(), {'alpha': [0.0001]}),
     # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
     # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
     # "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [10, 50, 100, 200], 'learning_rate': [0.01, 0.1, 0.2, 0.5]})
@@ -149,10 +149,10 @@ elif hasattr(best_model, 'feature_importances_'):
     print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
 
 
-#%% Start machine learning models (Weighting observations):
 
-
-
+model_filename = 'best_lasso_model.joblib'
+dump(best_model, 'best_lasso_model.joblib')
+print(f"Model saved to {model_filename}")
 
 #%% Get list of important variables according to Lasso:
 
@@ -267,6 +267,10 @@ if hasattr(best_model, 'coef_'):
 elif hasattr(best_model, 'feature_importances_'):
     print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
 
+
+model_filename = 'best_gb_model.joblib'
+dump(best_model, 'best_gb_model.joblib')
+print(f"Model saved to {model_filename}")
 
 
 #%%
