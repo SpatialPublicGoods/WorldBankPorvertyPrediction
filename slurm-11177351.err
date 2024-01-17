@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/01_describe_ml_consolidated_dataset.py", line 26, in <module>
+    ml_dataset = dpml.read_consolidated_ml_dataset()
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 490, in read_consolidated_ml_dataset
+    ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 948, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 611, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1448, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1705, in _make_engine
+    self.handles = get_handle(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/common.py", line 863, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: '/home/fcalle0/datasets/WorldBankPovertyPrediction/4_clean/ml_dataset_2024-01-14.csv'
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/02_run_income_prediction_ml.py", line 41, in <module>
+    ml_dataset = dpml.read_consolidated_ml_dataset()
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 490, in read_consolidated_ml_dataset
+    ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 948, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 611, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1448, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1705, in _make_engine
+    self.handles = get_handle(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/io/common.py", line 863, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: '/home/fcalle0/datasets/WorldBankPovertyPrediction/4_clean/ml_dataset_2024-01-14.csv'
