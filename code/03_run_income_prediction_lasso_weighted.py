@@ -106,19 +106,15 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
 gkf = GroupKFold(n_splits=n_folds)
 
 
-# Define the number of bins for the histogram
-# n_bins = 30  # You can adjust this based on your data
-# hist, bin_edges = np.histogram(Y_standardized_train, bins=n_bins, density=True)
-# bin_index = np.digitize(Y_standardized_train, bin_edges) - 1
-# bin_index[bin_index == n_bins] = n_bins - 1
-# weights = 1 / (hist[bin_index] + 1e-6)
-
 # Calculate weights for the entire dataset: higher for tail observations
 std_dev = np.std(Y_standardized_train)
 mean = np.mean(Y_standardized_train)
 tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
 weights = np.ones(Y_standardized_train.shape)
 weights[tails] *= 6  # Increase the weights for the tail observations
+
+# No Weights: 
+# weights = np.ones(Y_standardized_train.shape)
 
 
 # Perform grid search with parallel processing
@@ -135,6 +131,8 @@ for rmse, params, model_clone in results:
         best_params = params
         best_model = model_clone
 
+best_model_lasso = best_model
+
 # Output the best results
 print(f"Lasso: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
 if hasattr(best_model, 'coef_'):
@@ -144,6 +142,67 @@ if hasattr(best_model, 'coef_'):
 model_filename = 'best_weighted_lasso_model.joblib'
 dump(best_model, 'best_weighted_lasso_model.joblib')
 print(f"Model saved to {model_filename}")
+
+
+
+#%% Use features choosen by Lasso to predict income using Gradient Boosting:
+
+XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model.coef_ !=0]]
+XGB_standardized_train['const'] = 1
+
+# Define the model
+gb_model = GradientBoostingRegressor()
+
+# Define the parameter grid for Gradient Boosting
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'learning_rate': [0.01, 0.1, 0.2]
+}
+
+# Define the number of folds for cross-validation
+n_folds = 5
+
+# Define the number of jobs for parallelization
+n_jobs = 5  # Use -1 to use all processors
+
+# Initialize variables to store the best model
+best_score = float('inf')
+best_params = None
+best_model = None
+
+# Custom cross-validation with sample weighting
+gkf = GroupKFold(n_splits=n_folds)
+
+# Perform grid search with parallel processing
+results = Parallel(n_jobs=n_jobs)(
+    delayed(fit_model)(train_index, 
+                       test_index, 
+                       gb_model, 
+                       params, 
+                       XGB_standardized_train, 
+                       Y_standardized_train, 
+                       weights)
+    for params in param_grid for train_index, test_index in gkf.split(XGB_standardized_train, groups=ml_dataset_filtered_train['cv_id'])
+)
+
+# Extract the best parameters and model from the results
+for rmse, params, model_clone in results:
+    if rmse < best_score:
+        best_score = rmse
+        best_params = params
+        best_model = model_clone
+
+# Output the best results
+print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
+if hasattr(best_model, 'feature_importances_'):
+    print(f"Feature importances of the best model: {best_model.feature_importances_}")
+
+# Save the Model
+model_filename = 'best_weighted_gb_model.joblib'
+dump(best_model, model_filename)
+print(f"Model saved to {model_filename}")
+
+
 
 
 #%% Get list of important variables according to Lasso:

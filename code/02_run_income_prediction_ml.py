@@ -17,6 +17,7 @@ from sklearn.linear_model import Lasso, Ridge
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed, dump, load
+from sklearn.base import clone
 
 
 
@@ -229,65 +230,69 @@ XGB_standardized_train['const'] = 1
 XGB_standardized_validation['const'] = 1
 
 
-models = {
-    # "Linear Regression": (LinearRegression(), {}),
-    # "Lasso": (Lasso(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
-    # "Ridge": (Ridge(), {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}),
-    # "Random Forest": (RandomForestRegressor(), {'n_estimators': [10, 50, 100, 200]}),
-    "Gradient Boosting": (GradientBoostingRegressor(), {'n_estimators': [150, 200, 250, 300, 350, 400], 'learning_rate': [0.1, 0.2, 0.5]})
+# Define the model
+gb_model = GradientBoostingRegressor()
+
+# Define the parameter grid for Gradient Boosting
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'learning_rate': [0.01, 0.1, 0.2]
 }
 
-
+# Define the number of folds for cross-validation
 n_folds = 5
-# Dictionary to store grid search results
-grid_search_results = {}
 
-# Perform grid search with cross-validation for each model
-for model_name, (model, params) in models.items():
-    grid_search = GridSearchCV(model, 
-                               params, 
-                               cv=5, 
-                               scoring='neg_mean_squared_error', 
-                               return_train_score=True, 
-                               n_jobs=8)
-    grid_search.fit(XGB_standardized_train, Y_standardized_train)
-    grid_search_results[model_name] = grid_search
+# Define the number of jobs for parallelization
+n_jobs = 5  # Use -1 to use all processors
 
-# Print the best parameters and corresponding RMSE for each model
-for model_name, results in grid_search_results.items():
-    best_rmse = np.sqrt(-results.best_score_)
-    print(f"{model_name}: Best Params: {results.best_params_}, Best RMSE: {best_rmse:.3f}")
+# Initialize variables to store the best model
+best_score = float('inf')
+best_params = None
+best_model = None
 
+# Define the cross-validation and model fitting procedure
+def fit_model(train_index, test_index, model, params, X, y, weights):
+    X_train_fold, X_test_fold = X.iloc[train_index], X.iloc[test_index]
+    y_train_fold, y_test_fold = y.iloc[train_index], y.iloc[test_index]
+    model_clone = clone(model).set_params(**params)
+    model_clone.fit(X_train_fold, y_train_fold, sample_weight=weights[train_index])
+    predictions = model_clone.predict(X_test_fold)
+    rmse = np.sqrt(np.mean((predictions - y_test_fold) ** 2))
+    return rmse, params, model_clone
 
+# Custom cross-validation with sample weighting
+gkf = GroupKFold(n_splits=n_folds)
 
-best_model_grid_search = grid_search_results['Gradient Boosting']
-best_model = best_model_grid_search.best_estimator_
-if hasattr(best_model, 'coef_'):
-    print(f"Coefficients of the best model ({'Lasso'}): {best_model.coef_}")
-elif hasattr(best_model, 'feature_importances_'):
-    print(f"Feature importances of the best model ({'Lasso'}): {best_model.feature_importances_}")
+# Calculate weights for the entire dataset: higher for tail observations
+std_dev = np.std(Y_standardized_train)
+mean = np.mean(Y_standardized_train)
+tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
+weights = np.ones(Y_standardized_train.shape)
+weights[tails] *= 6  # Increase the weights for the tail observations
 
+# Perform grid search with parallel processing
+results = Parallel(n_jobs=n_jobs)(
+    delayed(fit_model)(train_index, test_index, gb_model, params, X_standardized_train, Y_standardized_train, weights)
+    for params in param_grid for train_index, test_index in gkf.split(X_standardized_train, groups=ml_dataset_filtered_train['cv_id'])
+)
 
-model_filename = 'best_gb_model.joblib'
-dump(best_model, 'best_gb_model.joblib')
+# Extract the best parameters and model from the results
+for rmse, params, model_clone in results:
+    if rmse < best_score:
+        best_score = rmse
+        best_params = params
+        best_model = model_clone
+
+# Output the best results
+print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
+if hasattr(best_model, 'feature_importances_'):
+    print(f"Feature importances of the best model: {best_model.feature_importances_}")
+
+# Save the Model
+model_filename = 'best_weighted_gb_model.joblib'
+dump(best_model, model_filename)
 print(f"Model saved to {model_filename}")
 
 
-#%%
-# Use the best model to predict (GRADIENT BOOSTING REGRESSION)
 
-predicted_income_train = best_model.predict(X_standardized_train)
 
-sns.histplot(predicted_income_train, color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(Y_standardized_train, color='blue', kde=True, label='True Income', stat='density')
-plt.legend()
-plt.show()
-
-# Use the best model to predict
-predicted_income_validation = best_model.predict(X_standardized_validation)
-
-sns.histplot(predicted_income_validation, color='red', kde=True, label='Predicted Income', stat='density')
-sns.histplot(Y_standardized_validation, color='blue', kde=True, label='True Income', stat='density')
-plt.legend()
-plt.savefig('../figures/prediction_vs_true_distribution_gradient_boosting.pdf', bbox_inches='tight')
-plt.show()
