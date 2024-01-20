@@ -59,7 +59,7 @@ class DataPreparationForML:
 
         # 5. define independent variables:
         # self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2', 'log_income_pc_lagged3', 'log_income_pc_lagged4']
-        self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2']
+        self.indepvar_enaho = ['log_income_pc_lagged'] #, 'log_income_pc_lagged2']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
                                         'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
@@ -88,7 +88,11 @@ class DataPreparationForML:
             'gross_weight_m', 'length_m', 'width_m', 'height_m']
         
         # self.indepvar_trend = ['trend' , 'trend2']
-        self.indepvar_trend = []
+        self.indepvar_trend = ['trend']
+
+        # self.indepvar_sample_selection = ['urbano','pondera_i']
+        self.indepvar_sample_selection = []
+
 
         self.indepvar_lagged_income = self.indepvar_enaho
 
@@ -518,7 +522,7 @@ class DataPreparationForML:
         return ml_dataset_filtered
 
 
-    def get_depvar_and_features(self, ml_dataset_filtered, scaler_X=None, scaler_Y=None):
+    def get_depvar_and_features(self, ml_dataset_filtered, scaler_X=None, scaler_Y=None, interaction=True):
         """
         Get the training sample
         Parameters
@@ -527,7 +531,7 @@ class DataPreparationForML:
         """
 
         # Define the independent variables to be used in the model:
-        indepvar_column_names = self.indepvars + self.indepvars_geodata
+        indepvar_column_names = self.indepvars + self.indepvars_geodata + self.indepvar_sample_selection
 
         # Define dependent and independent variables:
         Y = ml_dataset_filtered.loc[:,self.depvar].reset_index(drop=True) 
@@ -553,17 +557,22 @@ class DataPreparationForML:
         # Step 4: Generate dummy variables for ubigeo and month: 
         ubigeo_dummies = pd.get_dummies(ml_dataset_filtered['ubigeo'].str[:4], prefix='ubigeo', drop_first=True).reset_index(drop=True)
         month_dummies = pd.get_dummies(ml_dataset_filtered['month'], prefix='month', drop_first=True).reset_index(drop=True)
+        area_dummies = pd.get_dummies(ml_dataset_filtered['urbano'], prefix='urbano', drop_first=True).reset_index(drop=True)
         
         # Step 5: Adding the dummy variables to X
-        X_standardized = pd.concat([X_standardized, ubigeo_dummies.astype(int), month_dummies.astype(int)], axis=1)
-        
-        # Step 6: Create interaction terms:
-        variables_to_interact = self.indepvar_lagged_income + indepvar_column_names
-        # Create interaction terms
-        for var in variables_to_interact:
-            for dummy in ubigeo_dummies.columns:
-                interaction_term = X_standardized[var] * ubigeo_dummies[dummy]
-                X_standardized[f"{var}_x_{dummy}"] = interaction_term
+        X_standardized = pd.concat([X_standardized, 
+                                    ubigeo_dummies.astype(int), 
+                                    month_dummies.astype(int), 
+                                    area_dummies.astype(int)], axis=1)
+
+        if interaction == True:
+            # Step 6: Create interaction terms:
+            variables_to_interact = self.indepvar_lagged_income + indepvar_column_names
+            # Create interaction terms
+            for var in variables_to_interact:
+                for dummy in ubigeo_dummies.columns:
+                    interaction_term = X_standardized[var] * ubigeo_dummies[dummy]
+                    X_standardized[f"{var}_x_{dummy}"] = interaction_term
 
         # Step 7: Split the model in validation data and train and testing data:        
         Y_standardized_train = Y_standardized

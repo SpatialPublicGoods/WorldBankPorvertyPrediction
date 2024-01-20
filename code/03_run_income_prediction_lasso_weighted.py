@@ -20,6 +20,8 @@ from ml_utils import CustomTimePanelSplit
 from sklearn.neighbors import KernelDensity
 import numpy as np
 from joblib import Parallel, delayed
+from sklearn.model_selection import ParameterGrid
+from global_settings import global_settings
 
 
 
@@ -34,6 +36,8 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 freq = 'm'
 
 date = '2024-01-14' #datetime.today().strftime('%Y-%m-%d')
+
+settings = global_settings()
 
 #--------------
 
@@ -56,10 +60,13 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
-ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5])
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
+
+ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
+                                .query('year<=2014')
                                 .query('year<=2018')
                                 .sort_values(['date','conglome'])
                                 .reset_index(drop=True)
@@ -68,27 +75,10 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
 
 ml_dataset_filtered_train['cv_id'] = ml_dataset_filtered_train['ubigeo'].str[:4] + '-' + ml_dataset_filtered_train['urbano'].astype(int).astype(str) + '-' + ml_dataset_filtered_train['year'].astype(str)
 
-Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
+Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train, interaction=False)
 
-#%% Run Lasso Regression (Regular Cross Validation):
-
-# Define the model
-lasso = Lasso()
-
-# Define the parameter grid
-# param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
-param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-
-# Define the number of folds for cross-validation
-n_folds = 5
-
-# Define the number of jobs for parallelization
-n_jobs = 5  # Use -1 to use all processors
-
-# Initialize variables to store the best model
-best_score = float('inf')
-best_params = None
-best_model = None
+# %% Pre define some stuff:
+#----------------------------------------------------------------------------
 
 # Define the cross-validation and model fitting procedure
 def fit_model(train_index, test_index, model, params, X, y, weights):
@@ -100,43 +90,69 @@ def fit_model(train_index, test_index, model, params, X, y, weights):
     rmse = np.sqrt(np.mean((predictions - y_test_fold) ** 2))
     return rmse, params, model_clone
 
-# Custom cross-validation with sample weighting
-# kf = KFold(n_splits=n_folds)
-
-gkf = GroupKFold(n_splits=n_folds)
+def run_weighted_grid_search_model(model, all_params, X_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train):
+    # Define the number of folds for cross-validation
+    n_folds = 5
+    # Initialize variables to store the best model
+    best_score = float('inf')
+    best_params = None
+    best_model = None
+    gkf = GroupKFold(n_splits=n_folds)
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(fit_model)(train_index, test_index, model, params, X_standardized_train, Y_standardized_train, weights)
+        for params in all_params for train_index, test_index in gkf.split(X_standardized_train, groups=ml_dataset_filtered_train['cv_id'])
+    )
+    # Extract the best parameters and model from the results
+    for rmse, params, model_clone in results:
+        if rmse < best_score:
+            best_score = rmse
+            best_params = params
+            best_model = model_clone
+    return results, best_model, best_params, best_score
 
 
 # Calculate weights for the entire dataset: higher for tail observations
-std_dev = np.std(Y_standardized_train)
-mean = np.mean(Y_standardized_train)
-tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
-weights = np.ones(Y_standardized_train.shape)
-weights[tails] *= 6  # Increase the weights for the tail observations
 
+add_weights = False
+if add_weights == True:
+    std_dev = np.std(Y_standardized_train)
+    mean = np.mean(Y_standardized_train)
+    tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
+    weights = np.ones(Y_standardized_train.shape)
+    weights[tails] *= 6  # Increase the weights for the tail observations
+else:
 # No Weights: 
-# weights = np.ones(Y_standardized_train.shape)
+    weights = np.ones(Y_standardized_train.shape)
+
+# Define the number of jobs for parallelization
+n_jobs = 5  # Use -1 to use all processors
 
 
-# Perform grid search with parallel processing
-results = Parallel(n_jobs=n_jobs)(
-    delayed(fit_model)(train_index, test_index, lasso, {'alpha': alpha}, X_standardized_train, Y_standardized_train, weights)
-    for alpha in param_grid['alpha'] for train_index, test_index in gkf.split(X_standardized_train, groups = ml_dataset_filtered_train['cv_id']) #kf.split(X_standardized_train)
-)
+#%% Run Lasso Regression (Regular Cross Validation):
+#----------------------------------------------------------------------------
 
+# Define the model
+lasso = Lasso()
 
-# Extract the best parameters and model from the results
-for rmse, params, model_clone in results:
-    if rmse < best_score:
-        best_score = rmse
-        best_params = params
-        best_model = model_clone
+# Define the parameter grid
+# param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
+# param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
+param_grid = {'alpha': [0.001]}
+
+all_params = list(ParameterGrid(param_grid))
+
+results, best_model, best_params, best_score = run_weighted_grid_search_model(lasso, 
+                                                                              all_params, 
+                                                                              X_standardized_train, 
+                                                                              Y_standardized_train, 
+                                                                              weights, 
+                                                                              ml_dataset_filtered_train)
 
 best_model_lasso = best_model
-
 # Output the best results
 print(f"Lasso: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
-if hasattr(best_model, 'coef_'):
-    print(f"Coefficients of the best model: {best_model.coef_}")
+if hasattr(best_model_lasso, 'coef_'):
+    print(f"Coefficients of the best model: {best_model_lasso.coef_}")
 
 # Save the Model
 model_filename = 'best_weighted_lasso_model.joblib'
@@ -146,8 +162,9 @@ print(f"Model saved to {model_filename}")
 
 
 #%% Use features choosen by Lasso to predict income using Gradient Boosting:
+#----------------------------------------------------------------------------
 
-XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model.coef_ !=0]]
+XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
 XGB_standardized_train['const'] = 1
 
 # Define the model
@@ -155,60 +172,35 @@ gb_model = GradientBoostingRegressor()
 
 # Define the parameter grid for Gradient Boosting
 param_grid = {
-    'n_estimators': [100, 200, 300],
-    'learning_rate': [0.01, 0.1, 0.2]
+    # 'n_estimators': [100, 200, 300],
+    # 'learning_rate': [0.01, 0.1, 0.2]
+    'n_estimators': [100],
+    'learning_rate': [0.1]
 }
 
-# Define the number of folds for cross-validation
-n_folds = 5
+# Generate all combinations of parameters
+all_params = list(ParameterGrid(param_grid))
 
-# Define the number of jobs for parallelization
-n_jobs = 5  # Use -1 to use all processors
+results, best_model, best_params, best_score = run_weighted_grid_search_model(gb_model, all_params, XGB_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train)
 
-# Initialize variables to store the best model
-best_score = float('inf')
-best_params = None
-best_model = None
-
-# Custom cross-validation with sample weighting
-gkf = GroupKFold(n_splits=n_folds)
-
-# Perform grid search with parallel processing
-results = Parallel(n_jobs=n_jobs)(
-    delayed(fit_model)(train_index, 
-                       test_index, 
-                       gb_model, 
-                       params, 
-                       XGB_standardized_train, 
-                       Y_standardized_train, 
-                       weights)
-    for params in param_grid for train_index, test_index in gkf.split(XGB_standardized_train, groups=ml_dataset_filtered_train['cv_id'])
-)
-
-# Extract the best parameters and model from the results
-for rmse, params, model_clone in results:
-    if rmse < best_score:
-        best_score = rmse
-        best_params = params
-        best_model = model_clone
+best_model_gb = best_model
 
 # Output the best results
 print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
-if hasattr(best_model, 'feature_importances_'):
-    print(f"Feature importances of the best model: {best_model.feature_importances_}")
+if hasattr(best_model_gb, 'feature_importances_'):
+    print(f"Feature importances of the best model: {best_model_gb.feature_importances_}")
 
 # Save the Model
 model_filename = 'best_weighted_gb_model.joblib'
-dump(best_model, model_filename)
+dump(best_model_gb, model_filename)
 print(f"Model saved to {model_filename}")
 
 
-
-
 #%% Get list of important variables according to Lasso:
+#----------------------------------------------------------------------------
 
 # Get both the coefficients values and names 
-lasso_coefs = best_model.coef_  # Replace with your actual coefficients
+lasso_coefs = best_model_lasso.coef_  # Replace with your actual coefficients
 feature_names = X_standardized_train.columns  # Replace with your actual feature names
 
 # Separate the base variables and interaction terms
@@ -249,6 +241,7 @@ plt.clf()
 
 #%%
 # Use the best model to predict (LASSO REGRESSION)
+#----------------------------------------------------------------------------
 
 ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
                         .query('year==2019')
@@ -256,9 +249,9 @@ ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
                         .reset_index(drop=True)
                         )
 
-Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train)
+Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train, interaction=False)
 
-predicted_income_validation = best_model.predict(X_standardized_validation)
+predicted_income_validation = best_model_lasso.predict(X_standardized_validation)
 
 plt.clf()
 plt.figure(figsize=(10, 10))
@@ -279,6 +272,96 @@ sns.histplot(Y_standardized_validation.dropna(),
 # plt.xlim(0,2500)
 plt.legend()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
+plt.clf()
+
+#%%
+# Use the best model to predict (GRADIENT BOOSTING)
+#----------------------------------------------------------------------------
+
+ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
+                        .query('year==2019')
+                        .sort_values(['date','conglome'])
+                        .reset_index(drop=True)
+                        )
+
+Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train)
+
+XGB_standardized_validation =  X_standardized_validation[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
+XGB_standardized_validation['const'] = 1
 
 
+predicted_income_validation = best_model_gb.predict(XGB_standardized_validation)
+
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.histplot(pd.Series(predicted_income_validation).dropna(), 
+             color='red', 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='Predicted Income', 
+             stat='density')
+sns.histplot(Y_standardized_validation.dropna(), 
+             color='blue', 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='True Income', 
+             stat='density')
+# plt.xlim(0,2500)
+plt.legend()
+plt.savefig('../figures/fig0_prediction_vs_true_distribution_gradient_boosting.pdf', bbox_inches='tight')
+
+#%%
 print('End of code: 03_run_income_prediction_lasso_weighted.py')
+
+
+
+df = ml_dataset.query('urbano==False')
+
+
+sns.histplot(pd.Series(df.query('year == 2019').log_income_pc_lagged).dropna(), 
+             color=settings.color1, 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='2019', 
+             stat='density')
+
+sns.histplot(pd.Series(df.query('year == 2018').log_income_pc_lagged).dropna(), 
+             color=settings.color2, 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='2018', 
+             stat='density')
+
+sns.histplot(pd.Series(df.query('year == 2017').log_income_pc_lagged).dropna(), 
+             color=settings.color3, 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='2017', 
+             stat='density')
+
+sns.histplot(pd.Series(df.query('year == 2016').log_income_pc_lagged).dropna(), 
+             color=settings.color4, 
+             kde=True, 
+             fill=False, 
+            #  element='step',
+             label='2016', 
+             stat='density')
+
+sns.histplot(pd.Series(df.query('year == 2015').log_income_pc_lagged).dropna(), 
+             color=settings.color5, 
+             kde=True, 
+             fill=False, 
+             element='step',
+             label='2015', 
+             stat='density')
+
+plt.legend()
+plt.savefig('../figures/fig_creation_sandbox.pdf', bbox_inches='tight')
+plt.clf()
+
+ml_dataset.strata.value_counts()
