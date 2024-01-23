@@ -39,6 +39,8 @@ date = '2024-01-14' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
+add_weights = True
+
 #--------------
 
 dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
@@ -75,7 +77,7 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
 
 ml_dataset_filtered_train['cv_id'] = ml_dataset_filtered_train['ubigeo'].str[:4] + '-' + ml_dataset_filtered_train['urbano'].astype(int).astype(str) + '-' + ml_dataset_filtered_train['year'].astype(str)
 
-Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train, interaction=False)
+Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train, interaction=True)
 
 # %% Pre define some stuff:
 #----------------------------------------------------------------------------
@@ -113,7 +115,6 @@ def run_weighted_grid_search_model(model, all_params, X_standardized_train, Y_st
 
 # Calculate weights for the entire dataset: higher for tail observations
 
-add_weights = False
 if add_weights == True:
     std_dev = np.std(Y_standardized_train)
     mean = np.mean(Y_standardized_train)
