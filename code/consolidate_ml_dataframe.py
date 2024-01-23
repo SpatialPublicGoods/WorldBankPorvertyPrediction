@@ -522,7 +522,7 @@ class DataPreparationForML:
         return ml_dataset_filtered
 
 
-    def get_depvar_and_features(self, ml_dataset_filtered , scaler_X=None, scaler_Y=None, interaction=True):
+    def get_depvar_and_features(self, ml_dataset_filtered, scaler_X=None, scaler_Y=None, interaction=True):
         """
         Get the training sample
         Parameters
@@ -585,6 +585,7 @@ class DataPreparationForML:
         X_standardized_train['const'] = 1
 
         return Y_standardized_train, X_standardized_train, scaler_X, scaler_Y
+
 
     def load_ml_model(self, model_filename = 'best_weighted_lasso_model.joblib'):
         """

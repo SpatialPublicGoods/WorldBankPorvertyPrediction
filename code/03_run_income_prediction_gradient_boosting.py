@@ -39,7 +39,7 @@ date = '2024-01-14' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
-add_weights = True
+add_weights = False
 
 #--------------
 
@@ -131,6 +131,8 @@ else:
 # No Weights: 
     weights = np.ones(Y_standardized_train.shape)
 
+# weights = X_standardized_train['pondera_i']
+
 # Define the number of jobs for parallelization
 n_jobs = 5  # Use -1 to use all processors
 
@@ -142,9 +144,9 @@ n_jobs = 5  # Use -1 to use all processors
 lasso = Lasso()
 
 # Define the parameter grid
-param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
+# param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-# param_grid = {'alpha': [0.001]}
+param_grid = {'alpha': [0.001]}
 
 all_params = list(ParameterGrid(param_grid))
 
@@ -172,7 +174,7 @@ print(f"Model saved to {model_filename}")
 #----------------------------------------------------------------------------
 
 XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-XGB_standardized_train['const'] = 1
+# XGB_standardized_train['const'] = 1
 
 # Define the model
 gb_model = GradientBoostingRegressor()
@@ -182,7 +184,7 @@ param_grid = {
     'n_estimators': [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
-    'learning_rate': [0.1]
+    'learning_rate': [0.01]
 }
 
 # Generate all combinations of parameters
@@ -294,7 +296,7 @@ ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train)
 
 XGB_standardized_validation =  X_standardized_validation[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-XGB_standardized_validation['const'] = 1
+# XGB_standardized_validation['const'] = 1
 
 
 predicted_income_validation = best_model_gb.predict(XGB_standardized_validation)
@@ -323,52 +325,3 @@ plt.savefig('../figures/fig0_prediction_vs_true_distribution_gradient_boosting.p
 print('End of code: 03_run_income_prediction_lasso_weighted.py')
 
 
-
-df = ml_dataset.query('urbano==False')
-
-
-sns.histplot(pd.Series(df.query('year == 2019').log_income_pc_lagged).dropna(), 
-             color=settings.color1, 
-             kde=True, 
-             fill=False, 
-             element='step',
-             label='2019', 
-             stat='density')
-
-sns.histplot(pd.Series(df.query('year == 2018').log_income_pc_lagged).dropna(), 
-             color=settings.color2, 
-             kde=True, 
-             fill=False, 
-             element='step',
-             label='2018', 
-             stat='density')
-
-sns.histplot(pd.Series(df.query('year == 2017').log_income_pc_lagged).dropna(), 
-             color=settings.color3, 
-             kde=True, 
-             fill=False, 
-             element='step',
-             label='2017', 
-             stat='density')
-
-sns.histplot(pd.Series(df.query('year == 2016').log_income_pc_lagged).dropna(), 
-             color=settings.color4, 
-             kde=True, 
-             fill=False, 
-            #  element='step',
-             label='2016', 
-             stat='density')
-
-sns.histplot(pd.Series(df.query('year == 2015').log_income_pc_lagged).dropna(), 
-             color=settings.color5, 
-             kde=True, 
-             fill=False, 
-             element='step',
-             label='2015', 
-             stat='density')
-
-plt.legend()
-plt.savefig('../figures/fig_creation_sandbox.pdf', bbox_inches='tight')
-plt.clf()
-
-ml_dataset.strata.value_counts()
