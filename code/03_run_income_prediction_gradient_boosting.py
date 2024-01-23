@@ -173,10 +173,10 @@ gb_model = GradientBoostingRegressor()
 
 # Define the parameter grid for Gradient Boosting
 param_grid = {
-    # 'n_estimators': [100, 200, 300],
-    # 'learning_rate': [0.01, 0.1, 0.2]
-    'n_estimators': [100],
-    'learning_rate': [0.1]
+    'n_estimators': [50, 100, 200, 300],
+    'learning_rate': [0.01, 0.1]
+    # 'n_estimators': [100],
+    # 'learning_rate': [0.1]
 }
 
 # Generate all combinations of parameters
