@@ -522,7 +522,7 @@ class DataPreparationForML:
         return ml_dataset_filtered
 
 
-    def get_depvar_and_features(self, ml_dataset_filtered, scaler_X=None, scaler_Y=None, interaction=True):
+    def get_depvar_and_features(self, ml_dataset_filtered , scaler_X=None, scaler_Y=None, interaction=True):
         """
         Get the training sample
         Parameters

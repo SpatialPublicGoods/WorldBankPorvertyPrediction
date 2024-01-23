@@ -62,9 +62,13 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
-ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
+ml_dataset['urbano'] = ml_dataset['strata'].astype(int)#.isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
+
+ml_dataset['log_income_pc_mean'] = ml_dataset.groupby('year')['log_income_pc'].transform('mean') 
+
+ml_dataset['log_income_pc_std'] = ml_dataset.groupby('year')['log_income_pc'].transform('std') 
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
@@ -138,9 +142,9 @@ n_jobs = 5  # Use -1 to use all processors
 lasso = Lasso()
 
 # Define the parameter grid
-# param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
+param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-param_grid = {'alpha': [0.001]}
+# param_grid = {'alpha': [0.001]}
 
 all_params = list(ParameterGrid(param_grid))
 
@@ -175,10 +179,10 @@ gb_model = GradientBoostingRegressor()
 
 # Define the parameter grid for Gradient Boosting
 param_grid = {
-    'n_estimators': [25, 50, 100, 200, 300],
-    'learning_rate': [0.01, 0.1]
+    'n_estimators': [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
-    # 'learning_rate': [0.1]
+    'learning_rate': [0.1]
 }
 
 # Generate all combinations of parameters
