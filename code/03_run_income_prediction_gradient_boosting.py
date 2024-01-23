@@ -62,7 +62,7 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
-ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
+ml_dataset['urbano'] = ml_dataset['strata'] #.isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
