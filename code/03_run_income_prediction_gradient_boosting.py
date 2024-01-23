@@ -62,7 +62,7 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
-ml_dataset['urbano'] = ml_dataset['strata'] #.isin([1,2,3,4,5]).astype(int)
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
@@ -78,6 +78,8 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
 ml_dataset_filtered_train['cv_id'] = ml_dataset_filtered_train['ubigeo'].str[:4] + '-' + ml_dataset_filtered_train['urbano'].astype(int).astype(str) + '-' + ml_dataset_filtered_train['year'].astype(str)
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train, interaction=True)
+
+
 
 # %% Pre define some stuff:
 #----------------------------------------------------------------------------
@@ -173,7 +175,7 @@ gb_model = GradientBoostingRegressor()
 
 # Define the parameter grid for Gradient Boosting
 param_grid = {
-    'n_estimators': [50, 100, 200, 300],
+    'n_estimators': [25, 50, 100, 200, 300],
     'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
     # 'learning_rate': [0.1]

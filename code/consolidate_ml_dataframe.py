@@ -570,8 +570,13 @@ class DataPreparationForML:
             variables_to_interact = self.indepvar_lagged_income + indepvar_column_names
             # Create interaction terms
             for var in variables_to_interact:
+                
                 for dummy in ubigeo_dummies.columns:
                     interaction_term = X_standardized[var] * ubigeo_dummies[dummy]
+                    X_standardized[f"{var}_x_{dummy}"] = interaction_term
+
+                for dummy in area_dummies.columns:
+                    interaction_term = X_standardized[var] * area_dummies[dummy]
                     X_standardized[f"{var}_x_{dummy}"] = interaction_term
 
         # Step 7: Split the model in validation data and train and testing data:        
