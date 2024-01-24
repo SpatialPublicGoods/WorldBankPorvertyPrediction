@@ -62,9 +62,11 @@ ml_dataset['quarter'] = ml_dataset['month'].map(month_to_quarter)
 
 ml_dataset['date'] = pd.to_datetime(ml_dataset[['year','quarter']].rename(columns={'quarter':'month'}).assign(DAY=1))
 
-ml_dataset['urbano'] = ml_dataset['strata'].astype(int)#.isin([1,2,3,4,5]).astype(int)
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
+
+ml_dataset = dpml.input_missing_values(ml_dataset)
 
 ml_dataset['log_income_pc_mean'] = ml_dataset.groupby('year')['log_income_pc'].transform('mean') 
 
@@ -72,7 +74,7 @@ ml_dataset['log_income_pc_std'] = ml_dataset.groupby('year')['log_income_pc'].tr
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
-                                .query('year<=2014')
+                                .query('year>=2014')
                                 .query('year<=2018')
                                 .sort_values(['date','conglome'])
                                 .reset_index(drop=True)
@@ -174,7 +176,7 @@ print(f"Model saved to {model_filename}")
 #----------------------------------------------------------------------------
 
 XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-# XGB_standardized_train['const'] = 1
+XGB_standardized_train['const'] = 1
 
 # Define the model
 gb_model = GradientBoostingRegressor()
@@ -296,7 +298,7 @@ ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train)
 
 XGB_standardized_validation =  X_standardized_validation[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-# XGB_standardized_validation['const'] = 1
+XGB_standardized_validation['const'] = 1
 
 
 predicted_income_validation = best_model_gb.predict(XGB_standardized_validation)

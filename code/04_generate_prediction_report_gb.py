@@ -50,7 +50,7 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .reset_index(drop=False)
                     )
 
-ml_dataset['urbano'] = ml_dataset['strata'].astype(int) #.isin([1,2,3,4,5]).astype(int)
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['ubigeo_region'] = ml_dataset['ubigeo'].str[:4]
 

@@ -522,6 +522,21 @@ class DataPreparationForML:
         return ml_dataset_filtered
 
 
+    def input_missing_values(self, ml_dataset_filtered):
+
+        # Define the independent variables to be used in the model:
+        indepvar_column_names = self.indepvars + self.indepvars_geodata + self.indepvar_sample_selection
+
+        # Define dependent and independent variables:
+        X = ml_dataset_filtered.loc[:,self.indepvar_lagged_income + indepvar_column_names + self.indepvar_trend].copy()
+        X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
+        imputer = SimpleImputer(strategy='mean')
+        X_imputed = imputer.fit_transform(X)
+        ml_dataset_filtered.loc[:,self.indepvar_lagged_income + indepvar_column_names + self.indepvar_trend] = X_imputed
+
+        return ml_dataset_filtered
+
+
     def get_depvar_and_features(self, ml_dataset_filtered, scaler_X=None, scaler_Y=None, interaction=True):
         """
         Get the training sample
@@ -536,21 +551,17 @@ class DataPreparationForML:
         # Define dependent and independent variables:
         Y = ml_dataset_filtered.loc[:,self.depvar].reset_index(drop=True) 
         X = ml_dataset_filtered.loc[:,self.indepvar_lagged_income + indepvar_column_names + self.indepvar_trend]
-        X[indepvar_column_names] = np.log(X[indepvar_column_names] + 1)
 
-        # Step 1: Impute missing values
-        imputer = SimpleImputer(strategy='mean')
-        X_imputed = imputer.fit_transform(X)
         if scaler_X is None:  #(This is to demean test data)
             # Step 2: Standardize X
             scaler_X = StandardScaler()
-            X_standardized = scaler_X.fit_transform(X_imputed)
+            X_standardized = scaler_X.fit_transform(X)
             X_standardized = pd.DataFrame(X_standardized, columns=X.columns)
             # Step 3: Standardize Y
             scaler_Y = StandardScaler()
             Y_standardized = pd.Series(scaler_Y.fit_transform(Y.values.reshape(-1, 1)).flatten())  # Use flatten to convert it back to 1D array
         else:
-            X_standardized = scaler_X.transform(X_imputed)
+            X_standardized = scaler_X.transform(X)
             X_standardized = pd.DataFrame(X_standardized, columns=X.columns)
             Y_standardized = pd.Series(scaler_Y.transform(Y.values.reshape(-1, 1)).flatten())
         
