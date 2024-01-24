@@ -39,6 +39,8 @@ class DataPreparationForML:
         self.police_reports = 'delitos_distrito_comisaria_clean_panel.csv'
         self.domestic_violence = 'domestic_violence.csv'
         self.cargo_vehicles = 'cargo_vehicles.csv'
+        self.planilla = 'labor.csv'
+
         self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
         self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
         self.nightlights_file = '1_raw/peru/big_data/other/nightlight/Nightlights_V01.csv'
@@ -68,6 +70,10 @@ class DataPreparationForML:
                                         'Property_Real_Estate_Crimes', 'Public_Administration_Offenses',
                                         'Public_Order_Political_Crimes', 'Public_Safety_Health',
                                         'Sexual_Offenses', 'Theft_Robbery_Related_Crimes', 'Violence_Homicide']
+        
+        self.indepvar_planilla = ['companies',	'workers_tot',	'workers_sex_f_perc',	'workers_sex_m_perc', 
+                                  'workers_sex_si_perc', 'workers_type_exe_perc', 'workers_type_wor_perc', 
+                                  'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
         self.indepvar_precipitation =   ['Min_precipitation', 'Max_precipitation', 'Mean_precipitation',
                                             'Std_precipitation', 'Median_precipitation', 'Range_precipitation']
@@ -97,7 +103,8 @@ class DataPreparationForML:
         self.indepvar_lagged_income = self.indepvar_enaho
 
         self.indepvars = (self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
-                          self.indepvar_cargo_vehicles )
+                          self.indepvar_cargo_vehicles +
+                          self.indepvar_planilla)
         
         self.indepvars_geodata = (self.indepvar_precipitation +
                                     self.indepvar_temperature_max +
@@ -273,6 +280,35 @@ class DataPreparationForML:
 
         return cargo_vehicles
 
+
+    def read_planilla_electronica(self):
+        """
+        This function reads the cargo vehicles and returns a dataframe with the following variables:
+
+        - ubigeo: district code
+        - year: year of the survey
+        - month: month of the survey
+        - vehicles_tot: total number of vehicles
+        - fab_5y_p: percentage of vehicles fabricated in the last 5 years
+        - fab_10y_p: percentage of vehicles fabricated in the last 10 years
+        - fab_20y_p: percentage of vehicles fabricated in the last 20 years
+        - fab_30y_p: percentage of vehicles fabricated in the last 30 years
+        - pub_serv_p: percentage of vehicles for public service
+        - payload_m: payload in metric tons
+        - dry_weight_m: dry weight in metric tons
+        - gross_weight_m: gross weight in metric tons
+        - length_m: length in meters
+        - width_m: width in meters
+        - height_m: height in meters
+        - quarter: quarter of the year
+
+        """
+
+        planilla = pd.read_csv(os.path.join(self.dataPath, self.working, self.planilla), index_col=0).reset_index()
+
+        planilla['ubigeo'] = 'U-' + planilla['ubigeo'].astype(str).str.zfill(6)
+
+        return planilla
 
 
     def read_precipitation(self):
@@ -632,6 +668,8 @@ if __name__ == '__main__':
     police_reports_by_ubigeo = dpml.read_police_reports()
 
     cargo_vehicles = dpml.read_cargo_vehicles()
+    
+    labor = dpml.read_planilla_electronica()
 
     precipitation = dpml.read_precipitation()
 
@@ -644,6 +682,7 @@ if __name__ == '__main__':
     # Merge data:
     ml_dataset = (enaho.merge(police_reports_by_ubigeo, on=['ubigeo', 'year'], how='left')
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
+                        .merge(labor, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                         .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
                         .merge(nightlights, on=['conglome', 'year', 'month'], how='left')
@@ -652,8 +691,8 @@ if __name__ == '__main__':
                         )
     
     # Add trend and trend squared:
-    ml_dataset['trend'] = ((ml_dataset['year'] - ml_dataset['year'].min()) * 12 
-                                    + ml_dataset['month']) - ml_dataset['month'].min() + 1
+    ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
+
     
     ml_dataset['trend2'] = ml_dataset['trend']**2
 
