@@ -183,7 +183,7 @@ gb_model = GradientBoostingRegressor()
 
 # Define the parameter grid for Gradient Boosting
 param_grid = {
-    'n_estimators': [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+    'n_estimators': [25,100, 200, 300],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
     'learning_rate': [0.01]
@@ -260,7 +260,7 @@ ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
                         .reset_index(drop=True)
                         )
 
-Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train, interaction=False)
+Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train, interaction=True)
 
 predicted_income_validation = best_model_lasso.predict(X_standardized_validation)
 

@@ -52,11 +52,15 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
 
 ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
 
+ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
+
 ml_dataset['ubigeo_region'] = ml_dataset['ubigeo'].str[:4]
 
 ml_dataset['ubigeo_provincia'] = ml_dataset['ubigeo'].str[:6]
 
 ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
+
+ml_dataset = dpml.input_missing_values(ml_dataset)
 
 # 2. Obtain filtered dataset:
 
