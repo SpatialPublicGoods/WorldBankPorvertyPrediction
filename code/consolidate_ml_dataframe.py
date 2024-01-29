@@ -60,8 +60,13 @@ class DataPreparationForML:
         
 
         # 5. define independent variables:
-        # self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2', 'log_income_pc_lagged3', 'log_income_pc_lagged4']
-        self.indepvar_enaho = ['log_income_pc_lagged'] #, 'log_income_pc_lagged2']
+        self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2', 'log_income_pc_lagged3', 'log_income_pc_lagged4']
+        
+        self.indepvar_enaho_missing = ['lag_missing', 
+                                       'lag2_missing', 
+                                       'lag3_missing', 
+                                       'lag4_missing']
+        # self.indepvar_enaho = ['log_income_pc_lagged'] #, 'log_income_pc_lagged2']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
                                         'Family_Domestic_Issues', 'Fraud_Financial_Crimes',
@@ -100,7 +105,7 @@ class DataPreparationForML:
         self.indepvar_sample_selection = []
 
 
-        self.indepvar_lagged_income = self.indepvar_enaho
+        self.indepvar_lagged_income = self.indepvar_enaho + self.indepvar_enaho_missing
 
         self.indepvars = (self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
                           self.indepvar_cargo_vehicles +
@@ -111,6 +116,66 @@ class DataPreparationForML:
                                     self.indepvar_temperature_min + 
                                     self.indepvar_nightlights)
 
+
+    def obtain_ccpp_level_lags(self, enaho):
+
+        enaho_conglome = enaho.copy()
+
+        enaho_conglome['n_people'] = enaho_conglome['mieperho'] * enaho_conglome['pondera_i']
+
+        household_weight = enaho_conglome['n_people']/enaho_conglome.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
+
+        enaho_conglome['income_pc'] = enaho_conglome['income_pc'] * household_weight
+
+        enaho_conglome = (enaho_conglome.drop(columns=['dominio', 'estrato'])
+                                        .groupby(['ubigeo','conglome', 'year'])
+                                        .sum()
+                                        .sort_values(by=['conglome', 'year'], ascending=True)
+                                        .reset_index()
+                                        )
+        
+        # Compute income per capita:
+        enaho_conglome['log_income_pc'] = np.log(enaho_conglome['income_pc']+0.1)
+
+        # First, ensure there's a row for every combination of 'conglome', and 'year' in the expected range
+        all_years = range(enaho_conglome['year'].min(), enaho_conglome['year'].max() + 1)
+        idx = pd.MultiIndex.from_product(
+            [enaho_conglome['conglome'].unique(), all_years],
+            names=['conglome', 'year']
+        )
+
+        enaho_conglome_full = enaho_conglome.set_index(['conglome', 'year']).reindex(idx).reset_index()
+
+        # Compute income per capita
+        enaho_conglome_full['log_income_pc'] = np.log(enaho_conglome_full['income_pc'] + 0.1)
+
+        # Get lagged income_pc ensuring that it corresponds to exactly 1-year lag
+        for lag in range(1, 5):  # Adjust the range as needed
+            enaho_conglome_full[f'income_pc_lagged{lag}'] = enaho_conglome_full.groupby(['ubigeo', 'conglome'])['income_pc'].shift(lag)
+            enaho_conglome_full[f'log_income_pc_lagged{lag}'] = enaho_conglome_full.groupby(['ubigeo', 'conglome'])['log_income_pc'].shift(lag)
+
+        # Drop rows that were artificially added and contain only NaNs except for 'ubigeo', 'conglome', and 'year'
+        enaho_conglome = enaho_conglome_full.dropna(subset=['income_pc'])
+
+
+
+        enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
+                        .loc[:, ['ubigeo',
+                                'conglome',
+                                'year',
+                                'log_income_pc_lagged1',
+                                'log_income_pc_lagged2',
+                                'log_income_pc_lagged3',
+                                'log_income_pc_lagged4',
+                                'income_pc_lagged1',
+                                'income_pc_lagged2',
+                                'income_pc_lagged3',
+                                'income_pc_lagged4',
+                                ]]
+                        )
+        
+        return enaho_conglome
+    
 
     def read_enaho_sedlac(self):
 
@@ -157,41 +222,60 @@ class DataPreparationForML:
         # Compute income per capita (dependent variable):
         enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
 
-        # Compute income per capita:
-        enaho_conglome['log_income_pc'] = np.log(enaho_conglome['income_pc']+0.1)
 
-        # Get lagged income_pc 
-        enaho_conglome['income_pc_lagged'] = enaho_conglome.groupby(['ubigeo','conglome'])['income_pc'].shift(1)
-        enaho_conglome['log_income_pc_lagged'] = enaho_conglome.groupby(['ubigeo','conglome'])['log_income_pc'].shift(1)
+        enaho_conglome = (self.obtain_ccpp_level_lags(enaho)
+                                .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged',
+                                                'income_pc_lagged1':'income_pc_lagged'})
+                                                )
 
-        enaho_conglome['income_pc_lagged2'] = enaho_conglome.groupby(['ubigeo','conglome'])['income_pc'].shift(2)
-        enaho_conglome['log_income_pc_lagged2'] = enaho_conglome.groupby(['ubigeo','conglome'])['log_income_pc'].shift(2)
+        enaho_conglome['lag_missing'] = enaho_conglome['log_income_pc_lagged'].isna().astype(int)
+        enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
+        enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
+        enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
 
-        enaho_conglome['income_pc_lagged3'] = enaho_conglome.groupby(['ubigeo','conglome'])['income_pc'].shift(3)
-        enaho_conglome['log_income_pc_lagged3'] = enaho_conglome.groupby(['ubigeo','conglome'])['log_income_pc'].shift(3)
-
-        enaho_conglome['income_pc_lagged4'] = enaho_conglome.groupby(['ubigeo','conglome'])['income_pc'].shift(4)
-        enaho_conglome['log_income_pc_lagged4'] = enaho_conglome.groupby(['ubigeo','conglome'])['log_income_pc'].shift(4)
-
-        enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
-                        .loc[:, ['ubigeo',
-                                 'conglome',
-                                 'year',
-                                 'log_income_pc_lagged',
-                                 'log_income_pc_lagged2',
-                                 'log_income_pc_lagged3',
-                                 'log_income_pc_lagged4',
-                                 'income_pc_lagged',
-                                 'income_pc_lagged2',
-                                 'income_pc_lagged3',
-                                 'income_pc_lagged4',
-                                 ]]
-                        )
-        
         # Get conglome data to enaho:
         enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left').rename(columns={'mes':'month'})
 
         return enaho
+
+
+    def read_enaho_sedlac_ccpp(self):
+
+        """
+        This function reads the enaho panel data and returns a dataframe with the following variables:
+        
+        - ubigeo: district code
+        - year: year of the survey
+        - month: month of the survey
+        - conglome: conglomerate number
+        - mieperho: number of individuals in the household
+        - ingmo1hd: household income
+        - gashog1d: household expenditure
+        - income_pc: household income per capita
+        - log_income_pc: log of household income per capita
+        - spend_pc: household expenditure per capita
+        - log_spend_pc: log of household expenditure per capita
+        - income_pc_lagged: lagged income per capita
+        - spend_pc_lagged: lagged expenditure per capita
+
+        """
+
+
+        # Read csv
+        enaho = pd.read_csv(os.path.join(self.dataPath, 
+                                         self.working, 
+                                         self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
+
+        # Manipulate identificator variables:
+        enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
+        enaho['year'] = enaho['year']
+
+        # Get sum of income and individuals at the conglome:
+
+        enaho_conglome = self.obtain_ccpp_level_lags(enaho)
+
+        return enaho_conglome
+    
 
 
     def read_domestic_violence_cases(self):
@@ -660,7 +744,8 @@ if __name__ == '__main__':
 
     # Load data:
 
-    # enaho = dpml.read_enaho_panel()
+    enaho_ccpp = dpml.read_enaho_sedlac_ccpp()
+
     enaho = dpml.read_enaho_sedlac()
 
     domestic_violence = dpml.read_domestic_violence_cases()
@@ -711,3 +796,22 @@ if __name__ == '__main__':
     repeated_conglome_panel = pd.concat([conglome_panel.assign(month=i) for i in range(1, 13)], ignore_index=True)
 
     repeated_conglome_panel.to_csv(os.path.join(dpml.dataPath, dpml.raw,'peru/data', 'conglome_panel_final_version.csv'), index=False)
+
+
+
+
+#%% Some checks on the data for lag incme at CCPP:
+
+enaho_ccpp['missing_lag1'] = enaho_ccpp['log_income_pc_lagged1'].isna()
+enaho_ccpp['missing_lag2'] = enaho_ccpp['log_income_pc_lagged2'].isna()
+enaho_ccpp['missing_lag3'] = enaho_ccpp['log_income_pc_lagged3'].isna()
+enaho_ccpp['missing_lag4'] = enaho_ccpp['log_income_pc_lagged4'].isna()
+
+enaho_ccpp.groupby('year')[['missing_lag1',
+                            'missing_lag2',
+                            'missing_lag3',
+                            'missing_lag4']].mean().round(3).to_csv(os.path.join('..','tables', 'missing_lags.csv'))
+enaho_ccpp[['missing_lag1',
+            'missing_lag2',
+            'missing_lag3',
+            'missing_lag4']].mean()
