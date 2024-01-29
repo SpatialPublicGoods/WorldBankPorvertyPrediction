@@ -800,18 +800,18 @@ if __name__ == '__main__':
 
 
 
-#%% Some checks on the data for lag incme at CCPP:
+    #%% Some checks on the data for lag incme at CCPP:
 
-enaho_ccpp['missing_lag1'] = enaho_ccpp['log_income_pc_lagged1'].isna()
-enaho_ccpp['missing_lag2'] = enaho_ccpp['log_income_pc_lagged2'].isna()
-enaho_ccpp['missing_lag3'] = enaho_ccpp['log_income_pc_lagged3'].isna()
-enaho_ccpp['missing_lag4'] = enaho_ccpp['log_income_pc_lagged4'].isna()
+    enaho_ccpp['missing_lag1'] = enaho_ccpp['log_income_pc_lagged1'].isna()
+    enaho_ccpp['missing_lag2'] = enaho_ccpp['log_income_pc_lagged2'].isna()
+    enaho_ccpp['missing_lag3'] = enaho_ccpp['log_income_pc_lagged3'].isna()
+    enaho_ccpp['missing_lag4'] = enaho_ccpp['log_income_pc_lagged4'].isna()
 
-enaho_ccpp.groupby('year')[['missing_lag1',
-                            'missing_lag2',
-                            'missing_lag3',
-                            'missing_lag4']].mean().round(3).to_csv(os.path.join('..','tables', 'missing_lags.csv'))
-enaho_ccpp[['missing_lag1',
-            'missing_lag2',
-            'missing_lag3',
-            'missing_lag4']].mean()
+    enaho_ccpp.groupby('year')[['missing_lag1',
+                                'missing_lag2',
+                                'missing_lag3',
+                                'missing_lag4']].mean().round(3).to_csv(os.path.join('..','tables', 'missing_lags.csv'))
+    enaho_ccpp[['missing_lag1',
+                'missing_lag2',
+                'missing_lag3',
+                'missing_lag4']].mean()
