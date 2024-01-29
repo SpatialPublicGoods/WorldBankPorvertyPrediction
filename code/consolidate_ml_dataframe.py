@@ -199,27 +199,38 @@ class DataPreparationForML:
         """
 
 
-        # Read csv
+        # 1. Read csv
         enaho = pd.read_csv(os.path.join(self.dataPath, 
                                          self.working, 
                                          self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
-
-        # Manipulate identificator variables:
+        
+        # 2. Manipulate identificator variables:
         enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
         enaho['year'] = enaho['year']
 
-        # Get sum of income and individuals at the conglome:
+        # 3. Generate n_people to then compute average income per capita:
+        enaho['n_people'] = enaho['mieperho'] * enaho['pondera_i']
+        household_weight = enaho['n_people']/enaho.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
+        household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
+
+        # 4. Get demeaned version of income per capita:
+        enaho['income_pc_weighted'] = enaho['income_pc'] * household_weight_year
+        enaho['income_pc_yearly_average'] = enaho.groupby(['year'])['income_pc_weighted'].transform('sum')
+        enaho['income_pc'] = enaho['income_pc'] - enaho['income_pc_yearly_average']
+
+        # 5. Get sum of income and individuals at the conglome:
         enaho_conglome = enaho.copy()
-
-        enaho_conglome['n_people'] = enaho_conglome['mieperho'] * enaho_conglome['pondera_i']
-
-        household_weight = enaho_conglome['n_people']/enaho_conglome.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
 
         enaho_conglome['income_pc'] = enaho_conglome['income_pc'] * household_weight
 
-        enaho_conglome = enaho_conglome.drop(columns=['dominio', 'estrato']).groupby(['ubigeo','conglome', 'year']).sum().reset_index()
+        enaho_conglome = (enaho_conglome
+                            .drop(columns=['dominio', 'estrato'])
+                            .groupby(['ubigeo','conglome', 'year'])
+                            .sum()
+                            .reset_index()
+                            )
         
-        # Compute income per capita (dependent variable):
+        # 6. Compute income per capita (dependent variable):
         enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
 
 
@@ -233,7 +244,7 @@ class DataPreparationForML:
         enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
         enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
 
-        # Get conglome data to enaho:
+        # 7. Get conglome data to enaho:
         enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left').rename(columns={'mes':'month'})
 
         return enaho
@@ -688,7 +699,7 @@ class DataPreparationForML:
         # Step 4: Generate dummy variables for ubigeo and month: 
         ubigeo_dummies = pd.get_dummies(ml_dataset_filtered['ubigeo'].str[:4], prefix='ubigeo', drop_first=True).reset_index(drop=True)
         month_dummies = pd.get_dummies(ml_dataset_filtered['month'], prefix='month', drop_first=True).reset_index(drop=True)
-        area_dummies = pd.get_dummies(ml_dataset_filtered['urbano'], prefix='urbano', drop_first=True).reset_index(drop=True)
+        area_dummies = pd.get_dummies(ml_dataset_filtered['strata'], prefix='strata', drop_first=True).reset_index(drop=True)
         
         # Step 5: Adding the dummy variables to X
         X_standardized = pd.concat([X_standardized, 
