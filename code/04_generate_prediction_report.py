@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-01-14' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -49,13 +49,17 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .reset_index(drop=False)
                     )
 
-ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5])
+ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
+
+ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
 ml_dataset['ubigeo_region'] = ml_dataset['ubigeo'].str[:4]
 
 ml_dataset['ubigeo_provincia'] = ml_dataset['ubigeo'].str[:6]
 
 ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
+
+ml_dataset = dpml.input_missing_values(ml_dataset)
 
 # 2. Obtain filtered dataset:
 
@@ -73,11 +77,15 @@ best_model = dpml.load_ml_model(model_filename = 'best_weighted_lasso_model.jobl
 
 # 4. Predict income
 
-ml_dataset_filtered_train['log_income_pc_hat'] = best_model.predict(X_standardized_train)
-ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
+ml_dataset_filtered_train['log_income_pc_deviation_hat'] = best_model.predict(X_standardized_train)
+ml_dataset_filtered_train['log_income_pc_deviation_hat'] = ml_dataset_filtered_train['log_income_pc_deviation_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0] 
+ml_dataset_filtered_train['log_income_pc_deviation_hat'] = ml_dataset_filtered_train['log_income_pc_deviation_hat'] + ml_dataset_filtered_train['log_income_pc_yearly_average']
+ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_deviation_hat'] )  
 
-ml_dataset_filtered_validation['log_income_pc_hat'] = best_model.predict(X_standardized_validation)
-ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])
+ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = best_model.predict(X_standardized_validation)
+ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = ml_dataset_filtered_validation['log_income_pc_deviation_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0] 
+ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = ml_dataset_filtered_validation['log_income_pc_deviation_hat'] + ml_dataset_filtered_validation['log_income_pc_yearly_average']
+ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_deviation_hat'] )  
 
 
 # 5. Compiling both datasets and creating some variables:
