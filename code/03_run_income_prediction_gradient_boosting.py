@@ -70,7 +70,11 @@ ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
 
 ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
-ml_dataset = dpml.input_missing_values(ml_dataset)
+# trend_fixed_effects = pd.get_dummies(ml_dataset['trend'].str[:4], prefix='trend', drop_first=True).reset_index(drop=True)
+
+# ml_dataset = pd.concat([ml_dataset, trend_fixed_effects], axis=1)
+
+# ml_dataset = dpml.input_missing_values(ml_dataset)
 
 
 # Obtain filtered dataset:
