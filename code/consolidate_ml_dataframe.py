@@ -130,7 +130,7 @@ class DataPreparationForML:
         """
         enaho_conglome = enaho.copy()
 
-        enaho_conglome['n_people'] = enaho_conglome['mieperho'] * enaho_conglome['pondera_i']
+        enaho_conglome['n_people'] = enaho_conglome['mieperho'] #* enaho_conglome['pondera_i']
 
         household_weight = enaho_conglome['n_people']/enaho_conglome.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
 
@@ -208,7 +208,7 @@ class DataPreparationForML:
         enaho['year'] = enaho['year']
 
         # 3. Generate n_people to then compute average income per capita:
-        enaho['n_people'] = enaho['mieperho'] * enaho['pondera_i']
+        enaho['n_people'] = enaho['mieperho'] #* enaho['pondera_i']
         household_weight = enaho['n_people']/enaho.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
         household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
 
