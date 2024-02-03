@@ -79,13 +79,13 @@ best_model = dpml.load_ml_model(model_filename = 'best_weighted_lasso_model.jobl
 
 ml_dataset_filtered_train['log_income_pc_deviation_hat'] = best_model.predict(X_standardized_train)
 ml_dataset_filtered_train['log_income_pc_deviation_hat'] = ml_dataset_filtered_train['log_income_pc_deviation_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0] 
-ml_dataset_filtered_train['log_income_pc_deviation_hat'] = ml_dataset_filtered_train['log_income_pc_deviation_hat'] + ml_dataset_filtered_train['log_income_pc_yearly_average']
+# ml_dataset_filtered_train['log_income_pc_deviation_hat'] = ml_dataset_filtered_train['log_income_pc_deviation_hat'] + ml_dataset_filtered_train['log_income_pc_yearly_average']
 ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_deviation_hat'] )  
 
 ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = best_model.predict(X_standardized_validation)
 ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = ml_dataset_filtered_validation['log_income_pc_deviation_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0] 
-ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = ml_dataset_filtered_validation['log_income_pc_deviation_hat'] + ml_dataset_filtered_validation['log_income_pc_yearly_average']
-ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_deviation_hat'] )  
+# ml_dataset_filtered_validation['log_income_pc_deviation_hat'] = ml_dataset_filtered_validation['log_income_pc_deviation_hat'] + ml_dataset_filtered_validation['log_income_pc_yearly_average']
+ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_deviation_hat'])  
 
 
 # 5. Compiling both datasets and creating some variables:
