@@ -56,7 +56,8 @@ class DataPreparationForML:
         self.date = date
 
         # 4. define dependent variable:
-        self.depvar = 'log_income_pc'
+        # self.depvar = 'log_income_pc'
+        self.depvar = 'log_income_pc_deviation'
         
 
         # 5. define independent variables:
@@ -650,7 +651,7 @@ class DataPreparationForML:
         conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count')['year']
 
         # Filter out conglomerates that do not have all the years:        
-        ml_dataset_filtered = ml_dataset_filtered.dropna(subset='income_pc_lagged').reset_index(drop=True)
+        ml_dataset_filtered = ml_dataset_filtered.dropna(subset='log_income_pc_lagged').reset_index(drop=True)
         return ml_dataset_filtered
 
 

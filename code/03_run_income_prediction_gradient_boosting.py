@@ -68,9 +68,6 @@ ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
 ml_dataset = dpml.input_missing_values(ml_dataset)
 
-ml_dataset['log_income_pc_mean'] = ml_dataset.groupby('year')['log_income_pc'].transform('mean') 
-
-ml_dataset['log_income_pc_std'] = ml_dataset.groupby('year')['log_income_pc'].transform('std') 
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
@@ -136,7 +133,7 @@ else:
 # weights = X_standardized_train['pondera_i']
 
 # Define the number of jobs for parallelization
-n_jobs = 5  # Use -1 to use all processors
+n_jobs = 10  # Use -1 to use all processors
 
 
 #%% Run Lasso Regression (Regular Cross Validation):
