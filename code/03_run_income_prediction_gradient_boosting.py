@@ -42,7 +42,7 @@ settings = global_settings()
 
 add_weights = True
 
-SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
+# SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
 
 
 #--------------
@@ -76,7 +76,7 @@ ml_dataset = dpml.input_missing_values(ml_dataset)
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
                                 # .query('urbano==1')
-                                .query('year>=2016')
+                                .query('year>=2017')
                                 .query('year<=2018')
                                 .sort_values(['date','conglome'])
                                 .reset_index(drop=True)
@@ -137,7 +137,7 @@ else:
 # weights = X_standardized_train['pondera_i']
 
 # Define the number of jobs for parallelization
-n_jobs = 8  # Use -1 to use all processors
+n_jobs = -1  # Use -1 to use all processors
 
 
 #%% Run Lasso Regression (Regular Cross Validation):
