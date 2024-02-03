@@ -35,7 +35,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-01-29' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -85,7 +85,6 @@ ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
 ml_dataset_filtered_train['cv_id'] = ml_dataset_filtered_train['ubigeo'].str[:4] + '-' + ml_dataset_filtered_train['urbano'].astype(int).astype(str) + '-' + ml_dataset_filtered_train['year'].astype(str)
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train, interaction=True)
-
 
 
 # %% Pre define some stuff:
@@ -185,7 +184,8 @@ gb_model = GradientBoostingRegressor()
 # Define the parameter grid for Gradient Boosting
 param_grid = {
     # 'n_estimators': [25,100, 200, 300],
-    'n_estimators': [300],
+    'n_estimators': [500, 600, 700],
+    # 'n_estimators': [300],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
     'learning_rate': [0.01]
