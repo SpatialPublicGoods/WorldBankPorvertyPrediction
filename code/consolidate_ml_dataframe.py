@@ -209,7 +209,6 @@ class DataPreparationForML:
 
         # 3. Generate n_people to then compute average income per capita:
         enaho['n_people'] = enaho['mieperho'] * enaho['pondera_i']
-        household_weight = enaho['n_people']/enaho.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
         household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
 
         # 6. Compute income per capita (dependent variable):
@@ -222,19 +221,6 @@ class DataPreparationForML:
         enaho['log_income_pc_deviation'] = enaho['log_income_pc'] - enaho['log_income_pc_yearly_average']
 
         # 5. Get sum of income and individuals at the conglome:
-        enaho_conglome = enaho.copy()
-
-        enaho_conglome['log_income_pc'] = enaho_conglome['log_income_pc'] * household_weight
-
-        enaho_conglome = (enaho_conglome
-                            .drop(columns=['dominio', 'estrato'])
-                            .groupby(['ubigeo','conglome', 'year'])
-                            .sum()
-                            .reset_index()
-                            )
-        
-
-
         enaho_conglome = (self.obtain_ccpp_level_lags(enaho)
                                 .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged'})
                             )
