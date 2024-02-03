@@ -810,7 +810,6 @@ if __name__ == '__main__':
 
 
 
-
     #%% Some checks on the data for lag incme at CCPP:
 
     enaho_ccpp['missing_lag1'] = enaho_ccpp['log_income_pc_lagged1'].isna()
