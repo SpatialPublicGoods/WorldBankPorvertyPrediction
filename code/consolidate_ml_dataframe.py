@@ -244,7 +244,9 @@ class DataPreparationForML:
         enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
 
         # 7. Get conglome data to enaho:
-        enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left').rename(columns={'mes':'month'})
+        enaho = (enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
+                        .rename(columns={'mes':'month'})
+                        )
 
         return enaho
 
