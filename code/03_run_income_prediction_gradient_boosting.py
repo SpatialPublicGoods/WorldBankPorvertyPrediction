@@ -1,3 +1,4 @@
+import sys
 import os
 import pandas as pd
 import seaborn as sns
@@ -40,6 +41,9 @@ date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
 settings = global_settings()
 
 add_weights = True
+
+SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
+
 
 #--------------
 
@@ -133,7 +137,7 @@ else:
 # weights = X_standardized_train['pondera_i']
 
 # Define the number of jobs for parallelization
-n_jobs = 10  # Use -1 to use all processors
+n_jobs = 8  # Use -1 to use all processors
 
 
 #%% Run Lasso Regression (Regular Cross Validation):
