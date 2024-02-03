@@ -118,14 +118,23 @@ class DataPreparationForML:
 
 
     def obtain_ccpp_level_lags(self, enaho):
+        """
+        This function reads the enaho panel data and returns a dataframe with the following variables:
 
+        - ubigeo: district code
+        - year: year of the survey
+        - month: month of the survey
+        - conglome: conglomerate number
+        - lagged income per capita up to 4 years.
+        """
         enaho_conglome = enaho.copy()
 
         enaho_conglome['n_people'] = enaho_conglome['mieperho'] * enaho_conglome['pondera_i']
 
         household_weight = enaho_conglome['n_people']/enaho_conglome.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
 
-        enaho_conglome['income_pc'] = enaho_conglome['income_pc'] * household_weight
+        # Get log income per capita weighted:
+        enaho_conglome['log_income_pc'] = enaho_conglome['log_income_pc'] * household_weight
 
         enaho_conglome = (enaho_conglome.drop(columns=['dominio', 'estrato'])
                                         .groupby(['ubigeo','conglome', 'year'])
@@ -134,8 +143,6 @@ class DataPreparationForML:
                                         .reset_index()
                                         )
         
-        # Compute income per capita:
-        enaho_conglome['log_income_pc'] = np.log(enaho_conglome['income_pc']+0.1)
 
         # First, ensure there's a row for every combination of 'conglome', and 'year' in the expected range
         all_years = range(enaho_conglome['year'].min(), enaho_conglome['year'].max() + 1)
@@ -146,19 +153,14 @@ class DataPreparationForML:
 
         enaho_conglome_full = enaho_conglome.set_index(['conglome', 'year']).reindex(idx).reset_index()
 
-        # Compute income per capita
-        enaho_conglome_full['log_income_pc'] = np.log(enaho_conglome_full['income_pc'] + 0.1)
-
         # Get lagged income_pc ensuring that it corresponds to exactly 1-year lag
         for lag in range(1, 5):  # Adjust the range as needed
-            enaho_conglome_full[f'income_pc_lagged{lag}'] = enaho_conglome_full.groupby(['ubigeo', 'conglome'])['income_pc'].shift(lag)
             enaho_conglome_full[f'log_income_pc_lagged{lag}'] = enaho_conglome_full.groupby(['ubigeo', 'conglome'])['log_income_pc'].shift(lag)
 
         # Drop rows that were artificially added and contain only NaNs except for 'ubigeo', 'conglome', and 'year'
         enaho_conglome = enaho_conglome_full.dropna(subset=['income_pc'])
 
-
-
+        # Collapse the data to the conglome level:
         enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
                         .loc[:, ['ubigeo',
                                 'conglome',
@@ -167,10 +169,6 @@ class DataPreparationForML:
                                 'log_income_pc_lagged2',
                                 'log_income_pc_lagged3',
                                 'log_income_pc_lagged4',
-                                'income_pc_lagged1',
-                                'income_pc_lagged2',
-                                'income_pc_lagged3',
-                                'income_pc_lagged4',
                                 ]]
                         )
         
@@ -213,15 +211,19 @@ class DataPreparationForML:
         household_weight = enaho['n_people']/enaho.groupby(['ubigeo','conglome', 'year'])['n_people'].transform('sum')
         household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
 
-        # 4. Get demeaned version of income per capita:
-        enaho['income_pc_weighted'] = enaho['income_pc'] * household_weight_year
-        enaho['income_pc_yearly_average'] = enaho.groupby(['year'])['income_pc_weighted'].transform('sum')
-        enaho['income_pc'] = enaho['income_pc'] - enaho['income_pc_yearly_average']
+        # 6. Compute income per capita (dependent variable):
+        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
+
+        # 4. Get demeaned version of log income per capita (this will be dependent variable):
+        # basically what it does is log(income_pc) - \mu 
+        enaho['log_income_pc_weighted'] = enaho['log_income_pc'] * household_weight_year
+        enaho['log_income_pc_yearly_average'] = enaho.groupby(['year'])['log_income_pc_weighted'].transform('sum')
+        enaho['log_income_pc_deviation'] = enaho['log_income_pc'] - enaho['log_income_pc_yearly_average']
 
         # 5. Get sum of income and individuals at the conglome:
         enaho_conglome = enaho.copy()
 
-        enaho_conglome['income_pc'] = enaho_conglome['income_pc'] * household_weight
+        enaho_conglome['log_income_pc'] = enaho_conglome['log_income_pc'] * household_weight
 
         enaho_conglome = (enaho_conglome
                             .drop(columns=['dominio', 'estrato'])
@@ -230,14 +232,11 @@ class DataPreparationForML:
                             .reset_index()
                             )
         
-        # 6. Compute income per capita (dependent variable):
-        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
 
 
         enaho_conglome = (self.obtain_ccpp_level_lags(enaho)
-                                .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged',
-                                                'income_pc_lagged1':'income_pc_lagged'})
-                                                )
+                                .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged'})
+                            )
 
         enaho_conglome['lag_missing'] = enaho_conglome['log_income_pc_lagged'].isna().astype(int)
         enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
@@ -245,7 +244,9 @@ class DataPreparationForML:
         enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
 
         # 7. Get conglome data to enaho:
-        enaho = enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left').rename(columns={'mes':'month'})
+        enaho = (enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
+                        .rename(columns={'mes':'month'})
+                        )
 
         return enaho
 
