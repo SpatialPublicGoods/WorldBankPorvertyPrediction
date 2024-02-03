@@ -76,7 +76,7 @@ ml_dataset = dpml.input_missing_values(ml_dataset)
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
                                 # .query('urbano==1')
-                                .query('year>=2017')
+                                .query('year>=2016')
                                 .query('year<=2018')
                                 .sort_values(['date','conglome'])
                                 .reset_index(drop=True)
@@ -185,8 +185,8 @@ gb_model = GradientBoostingRegressor()
 # Define the parameter grid for Gradient Boosting
 param_grid = {
     # 'n_estimators': [25,100, 200, 300],
-    'n_estimators': [500, 600, 700],
-    # 'n_estimators': [300],
+    # 'n_estimators': [500, 600, 700],
+    'n_estimators': [500],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
     'learning_rate': [0.01]
