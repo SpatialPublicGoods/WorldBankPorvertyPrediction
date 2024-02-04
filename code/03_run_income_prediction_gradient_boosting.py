@@ -74,7 +74,7 @@ ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
 # ml_dataset = pd.concat([ml_dataset, trend_fixed_effects], axis=1)
 
-# ml_dataset = dpml.input_missing_values(ml_dataset)
+ml_dataset = dpml.input_missing_values(ml_dataset)
 
 
 # Obtain filtered dataset:
