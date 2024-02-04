@@ -153,7 +153,7 @@ lasso = Lasso()
 # Define the parameter grid
 # param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-param_grid = {'alpha': [0.0001]}
+param_grid = {'alpha': [0.001]}
 
 all_params = list(ParameterGrid(param_grid))
 
@@ -190,8 +190,8 @@ gb_model = GradientBoostingRegressor()
 param_grid = {
     # 'n_estimators': [25,100, 200, 300],
     # 'n_estimators': [500, 600, 700],
-    # 'n_estimators': list(range(100, 1000, 50)),
-    'n_estimators': [300],
+    'n_estimators': list(range(100, 1000, 50)),
+    # 'n_estimators': [300],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
     'learning_rate': [0.01]
