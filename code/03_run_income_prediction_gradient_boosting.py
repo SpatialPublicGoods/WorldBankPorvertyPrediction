@@ -153,7 +153,7 @@ lasso = Lasso()
 # Define the parameter grid
 # param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-param_grid = {'alpha': [0.001]}
+param_grid = {'alpha': [0.0001]}
 
 all_params = list(ParameterGrid(param_grid))
 
