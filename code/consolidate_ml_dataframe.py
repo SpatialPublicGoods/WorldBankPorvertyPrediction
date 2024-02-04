@@ -56,8 +56,8 @@ class DataPreparationForML:
         self.date = date
 
         # 4. define dependent variable:
-        # self.depvar = 'log_income_pc'
-        self.depvar = 'log_income_pc_deviation'
+        self.depvar = 'log_income_pc'
+        # self.depvar = 'log_income_pc_deviation'
         
 
         # 5. define independent variables:
