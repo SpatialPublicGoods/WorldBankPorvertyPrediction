@@ -130,7 +130,7 @@ def run_weighted_grid_search_model(model, all_params, X_standardized_train, Y_st
 if add_weights == True:
     std_dev = np.std(Y_standardized_train)
     mean = np.mean(Y_standardized_train)
-    tails = (Y_standardized_train < mean - 1.5 * std_dev) | (Y_standardized_train > mean + 1.5 * std_dev)
+    tails = (Y_standardized_train < mean - 1.5 * std_dev) #| (Y_standardized_train > mean + 1.5 * std_dev)
     weights = np.ones(Y_standardized_train.shape)
     weights[tails] *= 6  # Increase the weights for the tail observations
 else:
