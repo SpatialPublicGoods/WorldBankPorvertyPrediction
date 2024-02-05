@@ -79,7 +79,6 @@ ml_dataset = dpml.input_missing_values(ml_dataset)
 
 # Obtain filtered dataset:
 ml_dataset_filtered_train = (dpml.filter_ml_dataset(ml_dataset)
-                                # .query('urbano==1')
                                 .query('year>=2016')
                                 .query('year<=2018')
                                 .sort_values(['date','conglome'])
@@ -131,7 +130,7 @@ def run_weighted_grid_search_model(model, all_params, X_standardized_train, Y_st
 if add_weights == True:
     std_dev = np.std(Y_standardized_train)
     mean = np.mean(Y_standardized_train)
-    tails = (Y_standardized_train < mean - 2 * std_dev) | (Y_standardized_train > mean + 2 * std_dev)
+    tails = (Y_standardized_train < mean - 1.5 * std_dev) | (Y_standardized_train > mean + 1.5 * std_dev)
     weights = np.ones(Y_standardized_train.shape)
     weights[tails] *= 6  # Increase the weights for the tail observations
 else:
@@ -190,8 +189,9 @@ gb_model = GradientBoostingRegressor()
 param_grid = {
     # 'n_estimators': [25,100, 200, 300],
     # 'n_estimators': [500, 600, 700],
-    'n_estimators': list(range(100, 1000, 50)),
-    # 'n_estimators': [300],
+    # 'n_estimators': list(range(100, 1000, 50)),
+    # 'n_estimators': [500],
+    'n_estimators': [300],
     # 'n_estimators': [150],
     # 'learning_rate': [0.01, 0.1]
     # 'n_estimators': [100],
