@@ -90,10 +90,10 @@ X_standardized_validation['const'] = 1
 # 5. Predict income
 
 ml_dataset_filtered_train['log_income_pc_hat'] = best_model_gb.predict(X_standardized_train)
-ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) -20
+ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
 
 ml_dataset_filtered_validation['log_income_pc_hat'] = best_model_gb.predict(X_standardized_validation)
-ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) -20
+ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
 
 
 # 5. Compiling both datasets and creating some variables:
