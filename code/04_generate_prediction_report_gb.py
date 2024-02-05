@@ -100,6 +100,8 @@ ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_val
 
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
+df['income_pc_hat'] = df['income_pc_hat'] * 1.06 
+
 month_to_quarter = {1:1, 2:1, 3:1, 
                     4:4, 5:4, 6:4, 
                     7:7, 8:7, 9:7, 
