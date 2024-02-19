@@ -36,11 +36,11 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-19' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
-add_weights = True
+add_weights = False
 
 # SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
 
