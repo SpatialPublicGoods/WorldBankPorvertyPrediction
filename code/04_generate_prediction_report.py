@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-19' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -46,6 +46,7 @@ dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .groupby(['ubigeo','conglome','vivienda','hogar_ine','year'])
                     .first()
+                  #   .query('duplicate != 1')
                     .reset_index(drop=False)
                     )
 
@@ -67,7 +68,7 @@ ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2018
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
-ml_dataset_filtered_validation = dpml.filter_ml_dataset(ml_dataset).query('year==2019')
+ml_dataset_filtered_validation = dpml.filter_ml_dataset(ml_dataset).query('(year==2019) & (duplicate==1)')
 
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation, scaler_X_train, scaler_Y_train)
 
