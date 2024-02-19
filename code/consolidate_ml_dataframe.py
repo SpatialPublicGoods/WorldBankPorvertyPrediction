@@ -176,7 +176,7 @@ class DataPreparationForML:
         return enaho_conglome
     
 
-    def read_enaho_sedlac(self):
+    def read_enaho_sedlac(self, duplicate_2018 = False):
 
         """
         This function reads the enaho panel data and returns a dataframe with the following variables:
@@ -202,7 +202,9 @@ class DataPreparationForML:
         enaho = pd.read_csv(os.path.join(self.dataPath, 
                                          self.working, 
                                          self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
-        
+
+
+
         # 2. Manipulate identificator variables:
         enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
         enaho['year'] = enaho['year']
@@ -229,6 +231,12 @@ class DataPreparationForML:
         enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
         enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
         enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
+
+        if duplicate_2018:
+            enaho_2018 = enaho.query('year==2018').copy().reset_index(drop=True)
+            enaho_2018['year'] = 2019
+            enaho_2018['duplicate'] = 1
+            enaho = pd.concat([enaho, enaho_2018], axis=0)
 
         # 7. Get conglome data to enaho:
         enaho = (enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
@@ -745,7 +753,7 @@ if __name__ == '__main__':
 
     # enaho_ccpp = dpml.read_enaho_sedlac_ccpp()
 
-    enaho = dpml.read_enaho_sedlac()
+    enaho = dpml.read_enaho_sedlac(True)
 
     domestic_violence = dpml.read_domestic_violence_cases()
 
