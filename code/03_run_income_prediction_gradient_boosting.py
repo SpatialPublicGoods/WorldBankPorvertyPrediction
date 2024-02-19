@@ -40,7 +40,7 @@ date = '2024-02-19' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
-add_weights = False
+add_weights = True
 
 # SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
 
