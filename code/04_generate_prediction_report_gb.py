@@ -93,15 +93,15 @@ X_standardized_validation['const'] = 1
 predicted_income = best_model_gb.predict(X_standardized_train)
 random_shock = np.random.normal(loc=0, scale=predicted_income.std() * 1, size=pd.Series(predicted_income).dropna().shape[0])
 
-ml_dataset_filtered_train['log_income_pc_hat'] = predicted_income + random_shock
-ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
+ml_dataset_filtered_train['log_income_pc_hat'] = (predicted_income * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0])  + random_shock 
+ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] ) 
 
 # Validation:
 predicted_income_validation = best_model_gb.predict(X_standardized_validation)
 random_shock_validation = np.random.normal(loc=0, scale=predicted_income_validation.std() * 1.1, size=pd.Series(predicted_income_validation).dropna().shape[0])
 
-ml_dataset_filtered_validation['log_income_pc_hat'] = best_model_gb.predict(X_standardized_validation) + random_shock_validation
-ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
+ml_dataset_filtered_validation['log_income_pc_hat'] = (predicted_income_validation * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) + random_shock_validation
+ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat']  ) 
 
 
 
@@ -150,6 +150,8 @@ plt.legend()
 plt.savefig('../figures/fig1_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 print('Figure 1 saved')
 
+
+
 #%% Figure 1b (fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted): 
 # ECDF of predicted income vs true income
 #-------------------------------------------------------
@@ -164,6 +166,33 @@ plt.xlabel('Income')
 plt.ylabel('Cumulative Distribution')
 plt.savefig('../figures/fig1b_prediction_vs_true_income_ecdf_lasso_training_weighted.pdf', bbox_inches='tight')
 print('Figure 1b saved')
+
+
+# %% Figure 1c (fig1c_prediction_vs_true_income_by_region_lasso_training_weighted):
+
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.histplot(ml_dataset_filtered_validation['log_income_pc_hat'] , 
+                color=settings.color1, kde=True, 
+                label='Predicted Income', 
+                stat='density', 
+                fill=False, 
+                element='step'
+                )
+sns.histplot(ml_dataset_filtered_validation['log_income_pc'], 
+                color=settings.color2, 
+                kde=True, 
+                label='True Income', 
+                stat='density', 
+                fill=False, 
+                element='step'
+                )
+# plt.xlim(0, 3000)
+plt.legend()
+plt.savefig('../figures/fig1c_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
+print('Figure 1b saved')
+
+
 
 #%% Figure 2 (fig2_prediction_vs_true_income_by_region_lasso_training_weighted): 
 # Distribution of predicted income vs true income by region
@@ -200,6 +229,8 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     plt.savefig('../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
 
 print('Figure 2 saved')
+
+
 
 #%% Figure 3 (fig3_prediction_vs_true_poverty_rate_national): 
 # Poverty Rate National 
