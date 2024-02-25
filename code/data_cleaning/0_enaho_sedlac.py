@@ -74,10 +74,13 @@ def filter_variables_and_obtain_household_level_data(enaho_sedlac):
                                                 'vivienda','hogar_ine','strata', 
                                                 'year', 'mes', 'latitud','longitud',
                                                 'mieperho', 'ipcf_ppp17','lp_215usd_ppp',
-                                                'lp_365usd_ppp','lp_685usd_ppp','pondera_i']]
+                                                'lp_365usd_ppp','lp_685usd_ppp','pondera_i',
+                                                'prii','seci', 'secc', 'supi', 'supc', 'edad',
+                                                'jefe', 'hombre', 'nro_hijos' , 'categ_lab' ]]
 
     # Filter out missing values:
-    enaho_sedlac_filtered_household = (enaho_sedlac_filtered.groupby(['ubigeo','conglome','vivienda','hogar_ine','year', 'mes'])
+    enaho_sedlac_filtered_household = (enaho_sedlac_filtered.sort_values(['ubigeo','conglome','vivienda','hogar_ine', 'jefe','year', 'mes'], ascending=False)
+                                                        .groupby(['ubigeo','conglome','vivienda','hogar_ine','year', 'mes'])
                                                         .first()
                                                         .reset_index()
                                                         .rename(columns={'ipcf_ppp17':'income_pc',

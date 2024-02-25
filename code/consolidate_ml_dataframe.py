@@ -61,12 +61,19 @@ class DataPreparationForML:
         
 
         # 5. define independent variables:
-        self.indepvar_enaho = ['log_income_pc_lagged', 'log_income_pc_lagged2', 'log_income_pc_lagged3', 'log_income_pc_lagged4']
+        self.indepvar_enaho = [
+                                'log_income_pc_lagged', 
+                                'log_income_pc_lagged2', 
+                                'log_income_pc_lagged3', 
+                                'log_income_pc_lagged4'
+                               ]
         
-        self.indepvar_enaho_missing = ['lag_missing', 
-                                       'lag2_missing', 
-                                       'lag3_missing', 
-                                       'lag4_missing']
+        self.indepvar_enaho_missing = [
+                                        'lag_missing', 
+                                        'lag2_missing', 
+                                        'lag3_missing', 
+                                        'lag4_missing'
+                                       ]
         # self.indepvar_enaho = ['log_income_pc_lagged'] #, 'log_income_pc_lagged2']
 
         self.indepvar_police_reports = ['Economic_Commercial_Offenses',
@@ -81,17 +88,50 @@ class DataPreparationForML:
                                   'workers_sex_si_perc', 'workers_type_exe_perc', 'workers_type_wor_perc', 
                                   'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
-        self.indepvar_precipitation =   ['Min_precipitation', 'Max_precipitation', 'Mean_precipitation',
-                                            'Std_precipitation', 'Median_precipitation', 'Range_precipitation']
+        self.individual_variables = ['nro_hijos',
+                                        # 'prii',	
+                                        # 'seci',	
+                                        # 'secc',	
+                                        # 'supi',	
+                                        # 'supc',
+                                        'edad'
+                                        ]
 
-        self.indepvar_temperature_max =   ['Min_temperature_max', 'Max_temperature_max', 'Mean_temperature_max',
-                                            'Std_temperature_max', 'Median_temperature_max', 'Range_temperature_max']        
+        self.indepvar_precipitation =   [
+                                        # 'Min_precipitation', 
+                                        # 'Max_precipitation', 
+                                        # 'Mean_precipitation',
+                                        'Std_precipitation', 
+                                        # 'Median_precipitation', 
+                                        # 'Range_precipitation'
+                                        ]
 
-        self.indepvar_temperature_min =   ['Min_temperature_min', 'Max_temperature_min', 'Mean_temperature_min', 
-                                           'Std_temperature_min', 'Median_temperature_min', 'Range_temperature_min']
+        self.indepvar_temperature_max =   [
+                                            # 'Min_temperature_max', 
+                                            # 'Max_temperature_max', 
+                                            # 'Mean_temperature_max',
+                                            'Std_temperature_max', 
+                                            # 'Median_temperature_max', 
+                                            # 'Range_temperature_max'
+                                            ]        
 
-        self.indepvar_nightlights = ['min_nightlight','max_nightlight','mean_nightlight',
-                                     'stdDev_nightlight','median_nightlight','range_nightlight']        
+        self.indepvar_temperature_min =   [
+                                            # 'Min_temperature_min', 
+                                            # 'Max_temperature_min', 
+                                            # 'Mean_temperature_min', 
+                                            'Std_temperature_min', 
+                                            # 'Median_temperature_min', 
+                                            # 'Range_temperature_min'
+                                            ]
+
+        self.indepvar_nightlights = [
+                                    # 'min_nightlight',
+                                    # 'max_nightlight',
+                                    # 'mean_nightlight',
+                                    # 'stdDev_nightlight',
+                                    'median_nightlight',
+                                    # 'range_nightlight'
+                                    ]        
 
         self.indepvar_domestic_violence = ['cases_tot']
 
@@ -108,14 +148,20 @@ class DataPreparationForML:
 
         self.indepvar_lagged_income = self.indepvar_enaho + self.indepvar_enaho_missing
 
-        self.indepvars = (self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
-                          self.indepvar_cargo_vehicles +
-                          self.indepvar_planilla)
+        self.indepvars = (
+                            self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
+                            self.indepvar_cargo_vehicles +
+                            self.indepvar_planilla +
+                            self.individual_variables
+                            )        # self.indepvars = []
         
-        self.indepvars_geodata = (self.indepvar_precipitation +
+        self.indepvars_geodata = (    
+                                    self.indepvar_precipitation +
                                     self.indepvar_temperature_max +
                                     self.indepvar_temperature_min + 
-                                    self.indepvar_nightlights)
+                                    self.indepvar_nightlights +
+                                    []
+                                    )        # self.indepvars_geodata = []
 
 
     def obtain_ccpp_level_lags(self, enaho):
@@ -701,7 +747,8 @@ class DataPreparationForML:
         X_standardized = pd.concat([X_standardized, 
                                     ubigeo_dummies.astype(int), 
                                     month_dummies.astype(int), 
-                                    area_dummies.astype(int)], axis=1)
+                                    area_dummies.astype(int)
+                                    ], axis=1)
 
         if interaction == True:
             # Step 6: Create interaction terms:

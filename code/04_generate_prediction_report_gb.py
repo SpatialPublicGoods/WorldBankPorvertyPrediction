@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-23' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -88,19 +88,28 @@ X_standardized_validation =  X_standardized_validation[X_standardized_validation
 X_standardized_validation['const'] = 1
 
 # 5. Predict income
+# Train:
+predicted_income = best_model_gb.predict(X_standardized_train)
+random_shock = np.random.normal(loc=0, scale=predicted_income.std() * 1, size=pd.Series(predicted_income).dropna().shape[0])
 
-ml_dataset_filtered_train['log_income_pc_hat'] = best_model_gb.predict(X_standardized_train)
+ml_dataset_filtered_train['log_income_pc_hat'] = predicted_income + random_shock
 ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
 
-ml_dataset_filtered_validation['log_income_pc_hat'] = best_model_gb.predict(X_standardized_validation)
+# Validation:
+predicted_income_validation = best_model_gb.predict(X_standardized_validation)
+random_shock_validation = np.random.normal(loc=0, scale=predicted_income_validation.std() * 1.1, size=pd.Series(predicted_income_validation).dropna().shape[0])
+
+ml_dataset_filtered_validation['log_income_pc_hat'] = best_model_gb.predict(X_standardized_validation) + random_shock_validation
 ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat'] * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) 
+
+
 
 
 # 5. Compiling both datasets and creating some variables:
 
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
-df['income_pc_hat'] = df['income_pc_hat'] * 1.2
+# df['income_pc_hat'] = df['income_pc_hat'] * 1.2
 
 month_to_quarter = {1:1, 2:1, 3:1, 
                     4:4, 5:4, 6:4, 

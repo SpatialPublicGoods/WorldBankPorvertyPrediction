@@ -32,15 +32,15 @@ from global_settings import global_settings
 # Parameters
 dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
-dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+# dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-19' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-23' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
-add_weights = True
+add_weights = False
 
 # SYS_PARAMS = sys.argv[1:]  # This will be a list of strings like ['500', '600', '700']
 
@@ -140,7 +140,7 @@ else:
 # weights = X_standardized_train['pondera_i']
 
 # Define the number of jobs for parallelization
-n_jobs = -1  # Use -1 to use all processors
+n_jobs = 4  # Use -1 to use all processors
 
 
 #%% Run Lasso Regression (Regular Cross Validation):
@@ -152,7 +152,7 @@ lasso = Lasso()
 # Define the parameter grid
 # param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-param_grid = {'alpha': [0.001]}
+param_grid = {'alpha': [0.01]}
 
 all_params = list(ParameterGrid(param_grid))
 
@@ -179,41 +179,41 @@ print(f"Model saved to {model_filename}")
 #%% Use features choosen by Lasso to predict income using Gradient Boosting:
 #----------------------------------------------------------------------------
 
-XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-XGB_standardized_train['const'] = 1
+# XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
+# XGB_standardized_train['const'] = 1
 
-# Define the model
-gb_model = GradientBoostingRegressor()
+# # Define the model
+# gb_model = GradientBoostingRegressor()
 
-# Define the parameter grid for Gradient Boosting
-param_grid = {
-    # 'n_estimators': [25,100, 200, 300],
-    # 'n_estimators': [500, 600, 700],
-    # 'n_estimators': list(range(100, 1000, 50)),
-    # 'n_estimators': [500],
-    'n_estimators': [300],
-    # 'n_estimators': [150],
-    # 'learning_rate': [0.01, 0.1]
-    # 'n_estimators': [100],
-    'learning_rate': [0.01]
-}
+# # Define the parameter grid for Gradient Boosting
+# param_grid = {
+#     # 'n_estimators': [25,100, 200, 300],
+#     # 'n_estimators': [500, 600, 700],
+#     # 'n_estimators': list(range(100, 1000, 50)),
+#     # 'n_estimators': [500],
+#     'n_estimators': [300],
+#     # 'n_estimators': [150],
+#     # 'learning_rate': [0.01, 0.1]
+#     # 'n_estimators': [100],
+#     'learning_rate': [0.01]
+# }
 
-# Generate all combinations of parameters
-all_params = list(ParameterGrid(param_grid))
+# # Generate all combinations of parameters
+# all_params = list(ParameterGrid(param_grid))
 
-results, best_model, best_params, best_score = run_weighted_grid_search_model(gb_model, all_params, XGB_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train)
+# results, best_model, best_params, best_score = run_weighted_grid_search_model(gb_model, all_params, XGB_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train)
 
-best_model_gb = best_model
+# best_model_gb = best_model
 
-# Output the best results
-print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
-if hasattr(best_model_gb, 'feature_importances_'):
-    print(f"Feature importances of the best model: {best_model_gb.feature_importances_}")
+# # Output the best results
+# print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
+# if hasattr(best_model_gb, 'feature_importances_'):
+#     print(f"Feature importances of the best model: {best_model_gb.feature_importances_}")
 
-# Save the Model
-model_filename = 'best_weighted_gb_model.joblib'
-dump(best_model_gb, model_filename)
-print(f"Model saved to {model_filename}")
+# # Save the Model
+# model_filename = 'best_weighted_gb_model.joblib'
+# dump(best_model_gb, model_filename)
+# print(f"Model saved to {model_filename}")
 
 
 #%% Get list of important variables according to Lasso:
@@ -264,7 +264,7 @@ plt.clf()
 #----------------------------------------------------------------------------
 
 ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
-                        .query('year==2019')
+                        .query('year==2018')
                         .sort_values(['date','conglome'])
                         .reset_index(drop=True)
                         )
@@ -272,6 +272,12 @@ ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation,scaler_X_train, scaler_Y_train, interaction=True)
 
 predicted_income_validation = best_model_lasso.predict(X_standardized_validation)
+
+err_std = (Y_standardized_validation.std() - predicted_income_validation.std())
+
+samples = np.random.normal(loc=0, scale=predicted_income_validation.std(), size=pd.Series(predicted_income_validation).dropna().shape[0])
+
+
 
 plt.clf()
 plt.figure(figsize=(10, 10))
@@ -291,6 +297,7 @@ sns.histplot(Y_standardized_validation.dropna(),
              stat='density')
 # plt.xlim(0,2500)
 plt.legend()
+plt.show()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
 plt.clf()
 
@@ -299,7 +306,7 @@ plt.clf()
 #----------------------------------------------------------------------------
 
 ml_dataset_filtered_validation = (dpml.filter_ml_dataset(ml_dataset)
-                        .query('year==2019')
+                        .query('year==2018')
                         .sort_values(['date','conglome'])
                         .reset_index(drop=True)
                         )
@@ -312,9 +319,13 @@ XGB_standardized_validation['const'] = 1
 
 predicted_income_validation = best_model_gb.predict(XGB_standardized_validation)
 
+err_std = (Y_standardized_validation.std() - predicted_income_validation.std())
+
+samples = np.random.normal(loc=0, scale=predicted_income_validation.std() * 1.1, size=pd.Series(predicted_income_validation).dropna().shape[0])
+
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.histplot(pd.Series(predicted_income_validation).dropna(), 
+sns.histplot(pd.Series(predicted_income_validation).dropna() + pd.Series(samples), 
              color='red', 
              kde=True, 
              fill=False, 
@@ -328,11 +339,59 @@ sns.histplot(Y_standardized_validation.dropna(),
              element='step',
              label='True Income', 
              stat='density')
-# plt.xlim(0,2500)
 plt.legend()
+# plt.xlim(0,2500)
+plt.show()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_gradient_boosting.pdf', bbox_inches='tight')
 
 #%%
 print('End of code: 03_run_income_prediction_lasso_weighted.py')
 
+
+
+
+
+
+sns.histplot(np.exp(ml_dataset_filtered_validation['nro_hijos']), 
+                # kde=True,
+                fill=False, 
+                element='step')
+# plt.xlim(-10, 10)
+plt.show()
+
+
+# sns.histplot(np.log(max_temperature['Std_temperature_max']), 
+#                 # kde=True,
+#                 fill=False, 
+#                 element='step')
+# # plt.xlim(-10, 10)
+# plt.show()
+
+
+
+# sns.histplot(np.log(min_temperature['Std_temperature_min']), 
+#                 # kde=True,
+#                 fill=False, 
+#                 element='step')
+# plt.xlim(-10, 10)
+# plt.show()
+
+
+
+# sns.histplot(np.log(precipitation['Std_precipitation']), 
+#                 # kde=True,
+#                 fill=False, 
+#                 element='step')
+# plt.xlim(-10, 10)
+# plt.show()
+
+
+
+# sns.histplot(np.log(nightlights['median_nightlight']+1), 
+#                 kde=True,
+#                 fill=False, 
+#                 bins=100,
+#                 element='step')
+# # plt.xlim(-10, 10)
+# plt.show()
 
