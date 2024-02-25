@@ -74,7 +74,7 @@ ml_dataset_filtered_test = dpml.filter_ml_dataset(ml_dataset).query('year==2019'
 # 5. Predict income
 ml_dataset_filtered_train['income_pc_hat'] = ml_dataset_filtered_train['income_pc']
 
-ml_dataset_filtered_prediction['income_pc_hat'] = ml_dataset_filtered_prediction['income_pc'] #* (1.04) 
+ml_dataset_filtered_prediction['income_pc_hat'] = ml_dataset_filtered_prediction['income_pc'] * (1.04) 
 
 
 
