@@ -174,7 +174,61 @@ df['quarter'] = df['month'].map(month_to_quarter)
 df['n_people'] = 1
 # df['n_people'] = df['mieperho'] * df['pondera_i']
 
+#%% Figure 0 (Binned scatterplot:)
+#----------------------------------------------------------------
 
+def create_binned_scatterplot(df, income_col, predicted_col, bin_width=0.1, bin_start=0, bin_end=1):
+      # Define the bins based on specified parameters
+      bins = np.arange(bin_start, bin_end + bin_width, bin_width)
+      # Categorize the log income data into bins
+      df['income_bin'] = pd.cut(df[income_col], bins=bins, labels=[f"{round(b, 2)}-{round(b+bin_width, 2)}" for b in bins[:-1]])
+      # Calculate the mean of the predicted log income for each bin
+      binned_data = df.groupby('income_bin')[predicted_col].mean().reset_index()
+      binned_data['income_bin'] = binned_data['income_bin'].str.split('-').str[0].astype(float)
+      # Plotting
+      fig, ax1 = plt.subplots(figsize=(10, 7))
+      # Histogram
+      sns.histplot(df[income_col], 
+                  color=settings.color6, 
+                  linewidths=2,
+                  label='True Income', 
+                  stat='density',
+                  element='step',
+                  alpha=0.2,
+                  ax=ax1
+                  )
+      ax1.set_ylabel('Density')
+      # Poverty lines:
+      ax1.axvline(x=np.log(208.35417), color='gray', linestyle='--', linewidth=1)
+      ax1.axvline(x=np.log(111.020836), color='gray', linestyle='--', linewidth=1)
+      ax1.axvline(x=np.log(65.395836), color='gray', linestyle='--', linewidth=1)
+      # Binned scatterplot
+      ax2 = ax1.twinx()
+      ax2.scatter(binned_data['income_bin'], 
+                  binned_data[predicted_col], 
+                  alpha=0.8, 
+                  color=settings.color1,
+                  zorder=5 , # Ensure scatterplot is on top
+                  s=150
+                  )
+      ax2.set_ylabel('Average Predicted Log Income', color=settings.color1)
+      ax2.tick_params(axis='y', labelcolor=settings.color1)
+      ax2.set_xticks(binned_data['income_bin'])
+      ax1.set_xticklabels([f"{round(b, 1)}" for b in binned_data['income_bin']], rotation=90, fontsize='small')
+      fig.suptitle('Binned Scatterplot of Predicted Log Income')
+      fig.tight_layout()  # Adjust layout to not overlap
+      fig.savefig('../figures/fig0_binned_scatterplot.pdf', bbox_inches='tight')
+      plt.show()
+
+# Usage example:
+create_binned_scatterplot(
+    df=ml_dataset_filtered_validation, 
+    income_col='log_income_pc', 
+    predicted_col='log_income_pc_hat', 
+    bin_width=0.1, 
+    bin_start=ml_dataset_filtered_validation['log_income_pc'].min(), 
+    bin_end=ml_dataset_filtered_validation['log_income_pc'].max()
+)
 
 #%% Figure 1 (fig1_prediction_vs_true_income_distribution_lasso_training_weighted): 
 # Distribution of predicted income vs true income
