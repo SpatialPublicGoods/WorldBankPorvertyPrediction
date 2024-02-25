@@ -215,7 +215,7 @@ def create_binned_scatterplot(df, income_col, predicted_col, bin_width=0.1, bin_
       ax2.tick_params(axis='y', labelcolor=settings.color1)
       ax2.set_xticks(binned_data['income_bin'])
       ax1.set_xticklabels([f"{round(b, 1)}" for b in binned_data['income_bin']], rotation=90, fontsize='small')
-      fig.suptitle('Binned Scatterplot of Predicted Log Income')
+      # fig.suptitle('Binned Scatterplot of Predicted Log Income')
       fig.tight_layout()  # Adjust layout to not overlap
       fig.savefig('../figures/fig0_binned_scatterplot.pdf', bbox_inches='tight')
       plt.show()
