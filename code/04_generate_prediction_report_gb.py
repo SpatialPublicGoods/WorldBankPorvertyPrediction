@@ -131,7 +131,8 @@ df['n_people'] = 1
 plt.clf()
 plt.figure(figsize=(10, 10))
 sns.histplot(ml_dataset_filtered_validation['income_pc_hat'], 
-                color=settings.color1, kde=True, 
+                color=settings.color1, 
+            #     kde=True, 
                 label='Predicted Income', 
                 stat='density', 
                 fill=False, 
@@ -139,7 +140,7 @@ sns.histplot(ml_dataset_filtered_validation['income_pc_hat'],
                 )
 sns.histplot(ml_dataset_filtered_validation['income_pc'], 
                 color=settings.color2, 
-                kde=True, 
+            #     kde=True, 
                 label='True Income', 
                 stat='density', 
                 fill=False, 
@@ -173,7 +174,8 @@ print('Figure 1b saved')
 plt.clf()
 plt.figure(figsize=(10, 10))
 sns.histplot(ml_dataset_filtered_validation['log_income_pc_hat'] , 
-                color=settings.color1, kde=True, 
+                color=settings.color1, 
+            #     kde=True, 
                 label='Predicted Income', 
                 stat='density', 
                 fill=False, 
@@ -181,7 +183,7 @@ sns.histplot(ml_dataset_filtered_validation['log_income_pc_hat'] ,
                 )
 sns.histplot(ml_dataset_filtered_validation['log_income_pc'], 
                 color=settings.color2, 
-                kde=True, 
+            #     kde=True, 
                 label='True Income', 
                 stat='density', 
                 fill=False, 
@@ -209,7 +211,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     region_data = ml_dataset_filtered_validation[ml_dataset_filtered_validation['ubigeo_region'] == region]
     sns.histplot(region_data['income_pc_hat'], 
                     color=settings.color1, 
-                    kde=True, 
+                  #   kde=True, 
                     label='Predicted Income', 
                     stat='density', 
                     fill=False, 
@@ -217,7 +219,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
                     ax=ax)
     sns.histplot(region_data['income_pc'], 
                     color=settings.color2, 
-                    kde=True, 
+                  #   kde=True, 
                     label='True Income', 
                     stat='density', 
                     fill=False, 

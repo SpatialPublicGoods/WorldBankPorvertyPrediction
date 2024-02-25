@@ -283,7 +283,7 @@ plt.clf()
 plt.figure(figsize=(10, 10))
 sns.histplot(pd.Series(predicted_income_validation).dropna(), 
              color='red', 
-             kde=True, 
+            #  kde=True, 
              fill=False, 
              element='step',
              label='Predicted Income', 
