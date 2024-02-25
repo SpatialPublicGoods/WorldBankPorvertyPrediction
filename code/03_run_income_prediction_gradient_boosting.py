@@ -30,9 +30,9 @@ from global_settings import global_settings
 #%% Get current working directory and parameters:
 
 # Parameters
-dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
+# dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
-# dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
@@ -152,7 +152,7 @@ lasso = Lasso()
 # Define the parameter grid
 # param_grid = {'alpha': [0.0001, 0.0002, 0.0005, 0.001, 0.005, 0.01]}
 # param_grid = {'alpha': [0.00005, 0.0001, 0.001]}
-param_grid = {'alpha': [0.01]}
+param_grid = {'alpha': [0.005]}
 
 all_params = list(ParameterGrid(param_grid))
 
@@ -179,41 +179,41 @@ print(f"Model saved to {model_filename}")
 #%% Use features choosen by Lasso to predict income using Gradient Boosting:
 #----------------------------------------------------------------------------
 
-# XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-# XGB_standardized_train['const'] = 1
+XGB_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
+XGB_standardized_train['const'] = 1
 
-# # Define the model
-# gb_model = GradientBoostingRegressor()
+# Define the model
+gb_model = GradientBoostingRegressor()
 
-# # Define the parameter grid for Gradient Boosting
-# param_grid = {
-#     # 'n_estimators': [25,100, 200, 300],
-#     # 'n_estimators': [500, 600, 700],
-#     # 'n_estimators': list(range(100, 1000, 50)),
-#     # 'n_estimators': [500],
-#     'n_estimators': [300],
-#     # 'n_estimators': [150],
-#     # 'learning_rate': [0.01, 0.1]
-#     # 'n_estimators': [100],
-#     'learning_rate': [0.01]
-# }
+# Define the parameter grid for Gradient Boosting
+param_grid = {
+    # 'n_estimators': [25,100, 200, 300],
+    # 'n_estimators': [500, 600, 700],
+    # 'n_estimators': list(range(100, 1000, 50)),
+    # 'n_estimators': [500],
+    'n_estimators': [300],
+    # 'n_estimators': [150],
+    # 'learning_rate': [0.01, 0.1]
+    # 'n_estimators': [100],
+    'learning_rate': [0.01]
+}
 
-# # Generate all combinations of parameters
-# all_params = list(ParameterGrid(param_grid))
+# Generate all combinations of parameters
+all_params = list(ParameterGrid(param_grid))
 
-# results, best_model, best_params, best_score = run_weighted_grid_search_model(gb_model, all_params, XGB_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train)
+results, best_model, best_params, best_score = run_weighted_grid_search_model(gb_model, all_params, XGB_standardized_train, Y_standardized_train, weights, ml_dataset_filtered_train)
 
-# best_model_gb = best_model
+best_model_gb = best_model
 
-# # Output the best results
-# print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
-# if hasattr(best_model_gb, 'feature_importances_'):
-#     print(f"Feature importances of the best model: {best_model_gb.feature_importances_}")
+# Output the best results
+print(f"Gradient Boosting: Best Params: {best_params}, Best RMSE: {best_score:.3f}")
+if hasattr(best_model_gb, 'feature_importances_'):
+    print(f"Feature importances of the best model: {best_model_gb.feature_importances_}")
 
-# # Save the Model
-# model_filename = 'best_weighted_gb_model.joblib'
-# dump(best_model_gb, model_filename)
-# print(f"Model saved to {model_filename}")
+# Save the Model
+model_filename = 'best_weighted_gb_model.joblib'
+dump(best_model_gb, model_filename)
+print(f"Model saved to {model_filename}")
 
 
 #%% Get list of important variables according to Lasso:
@@ -341,7 +341,7 @@ sns.histplot(Y_standardized_validation.dropna(),
              stat='density')
 plt.legend()
 # plt.xlim(0,2500)
-plt.show()
+# plt.show()
 plt.savefig('../figures/fig0_prediction_vs_true_distribution_gradient_boosting.pdf', bbox_inches='tight')
 
 #%%
@@ -352,12 +352,12 @@ print('End of code: 03_run_income_prediction_lasso_weighted.py')
 
 
 
-sns.histplot(np.exp(ml_dataset_filtered_validation['nro_hijos']), 
-                # kde=True,
-                fill=False, 
-                element='step')
-# plt.xlim(-10, 10)
-plt.show()
+# sns.histplot(np.exp(ml_dataset_filtered_validation['nro_hijos']), 
+#                 # kde=True,
+#                 fill=False, 
+#                 element='step')
+# # plt.xlim(-10, 10)
+# plt.show()
 
 
 # sns.histplot(np.log(max_temperature['Std_temperature_max']), 
