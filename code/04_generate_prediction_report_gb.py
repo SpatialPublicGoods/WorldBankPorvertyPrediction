@@ -62,6 +62,41 @@ ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
 
 ml_dataset = dpml.input_missing_values(ml_dataset)
 
+
+def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_col):
+    """
+    Add a column of random shocks stratified by region to the DataFrame.
+    Parameters:
+    ml_df (DataFrame): The input DataFrame.
+    income_col (str): The name of the column with predicted income values.
+    region_col (str): The name of the column to store the region codes.
+    shock_col (str): The name of the new column to store the random shocks.
+    ubigeo_col (str): The name of the column containing ubigeo codes.
+    Returns:
+    DataFrame: The input DataFrame with the added column of random shocks.
+    """
+    # Copy the DataFrame to avoid modifying the original one
+    df = ml_df.copy()
+    # Extract region from ubigeo and create a new column for region
+    df[region_col] = df[ubigeo_col].str[:4]
+    # Initialize the random shock column with NaNs
+    df[shock_col] = np.nan
+    # Now, for each unique region, calculate the random shocks
+    for region in df[region_col].unique():
+        # Filter to get the predicted income for the region
+        predicted_error_region = df.loc[df[region_col] == region, error_col]
+        # Calculate the random shock for this region
+        region_shock = np.random.normal(
+            loc=0,
+            scale=predicted_error_region.std() ,  # scale based on the std dev of predicted income in the region
+            size=predicted_error_region.shape[0]
+        )
+        # Assign the calculated shocks back to the main DataFrame
+        df.loc[df[region_col] == region, shock_col] = region_shock
+    return df
+
+
+
 # 2. Obtain filtered dataset:
 
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2018')
@@ -72,6 +107,7 @@ Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpm
 ml_dataset_filtered_validation = dpml.filter_ml_dataset(ml_dataset).query('(year==2019) & (duplicate==1)')
 
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation, scaler_X_train, scaler_Y_train)
+
 
 # 3. Load best model:
 
@@ -98,7 +134,23 @@ ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['l
 
 # Validation:
 predicted_income_validation = best_model_gb.predict(X_standardized_validation)
-random_shock_validation = np.random.normal(loc=0, scale=predicted_income_validation.std() * 1.1, size=pd.Series(predicted_income_validation).dropna().shape[0])
+
+ml_dataset_filtered_validation['predicted_income'] = best_model_gb.predict(X_standardized_validation)* scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
+ml_dataset_filtered_validation['true_income'] = np.array(Y_standardized_validation)* scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
+ml_dataset_filtered_validation['predicted_error'] = ml_dataset_filtered_validation['predicted_income'] - ml_dataset_filtered_validation['true_income']
+
+error_std = (ml_dataset_filtered_validation['predicted_error']).std()
+
+# random_shock_validation = np.random.normal(loc=0, scale=error_std, size=pd.Series(predicted_income_validation).dropna().shape[0])
+
+random_shock_validation = np.array(add_random_shocks_by_region(
+                                    ml_df=ml_dataset_filtered_validation, 
+                                    error_col='predicted_error', 
+                                    region_col='region', 
+                                    shock_col='random_shock', 
+                                    ubigeo_col='ubigeo'
+                                    ).random_shock
+                                    )
 
 ml_dataset_filtered_validation['log_income_pc_hat'] = (predicted_income_validation * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) + random_shock_validation
 ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat']  ) 
@@ -192,7 +244,7 @@ sns.histplot(ml_dataset_filtered_validation['log_income_pc'],
 # plt.xlim(0, 3000)
 plt.legend()
 plt.savefig('../figures/fig1c_prediction_vs_true_income_distribution_lasso_training_weighted.pdf', bbox_inches='tight')
-print('Figure 1b saved')
+print('Figure 1c saved')
 
 
 

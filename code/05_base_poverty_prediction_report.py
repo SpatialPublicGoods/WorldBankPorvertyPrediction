@@ -269,6 +269,66 @@ plt.savefig('../figures/baseline_report/fig4_prediction_vs_true_poverty_rate_reg
 print('Figure 4 saved')
 
 
+#%% Figure 4.2 (fig4_2_prediction_vs_true_poverty_rate_regions_scatter):
+
+# Scatter plot of predicted poverty rate vs true poverty rate
+#--------------------------------------------------------------
+
+# Poverty 685:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.scatterplot(x=porverty_comparison_region['poor_685'], 
+                  y=porverty_comparison_region['poor_hat_685'], 
+                  label='LP 685', 
+                  color=settings.color1,
+                  s=150
+                )
+sns.lineplot(x=[0,.7], y=[0,.7], color=settings.color2)
+plt.xlabel('True Poverty Rate')
+plt.ylabel('Predicted Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p685_scatter.pdf', bbox_inches='tight')
+
+
+# Poverty 365:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.scatterplot(x=porverty_comparison_region['poor_365'], 
+                y=porverty_comparison_region['poor_hat_365'], 
+                label='LP 365', 
+                  color=settings.color1,
+                  s=150
+                )
+sns.lineplot(x=[0,.31], y=[0,.31], color=settings.color2)
+plt.xlabel('True Poverty Rate')
+plt.ylabel('Predicted Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p365_scatter.pdf', bbox_inches='tight')
+
+
+# Poverty 215:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.scatterplot(x=porverty_comparison_region['poor_215'], 
+                y=porverty_comparison_region['poor_hat_215'], 
+                label='LP 215', 
+                  color=settings.color1,
+                  s=150
+                )
+sns.lineplot(x=[0,.125], y=[0,.125], color=settings.color2)
+plt.xlabel('True Poverty Rate')
+plt.ylabel('Predicted Poverty Rate')
+plt.legend()
+plt.grid(True)
+plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p215_scatter.pdf', bbox_inches='tight')
+
+
+
+
+
+
 #%% Figure 5 (fig5_prediction_vs_true_poverty_rate_urban_rural): 
 # Replicate poverty rate urban-rural
 #----------------------------------------------------
