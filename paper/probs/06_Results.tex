@@ -10,12 +10,29 @@
 \end{figure}
 
 
+\begin{figure}[H]
+    \centering
+    \caption{Standard Deviation of Predicted Errors}
+    \includegraphics[width=1\textwidth]{../figures/std_trend.pdf}
+    \label{fig:enter-label}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+    \centering
+    \caption{Correlation: Predicted vs True Per-capita Household Income}
+    \includegraphics[width=1\textwidth]{../figures/fig0_binned_scatterplot.pdf}
+    \label{fig:enter-label}
+\end{figure}
+
 
 
 \begin{figure}[H]
     \centering
     \caption{Out of Sample Prediction vs True Income Distribution (Standardized) 2019}
-    \includegraphics[width=1\textwidth]{../figures/fig0_prediction_vs_true_distribution_lasso_training_weighted.pdf}
+    \includegraphics[width=1\textwidth]{../figures/fig1c_prediction_vs_true_income_distribution_lasso_training_weighted.pdf}
     \label{fig:enter-label}
 \end{figure}
 
@@ -42,7 +59,7 @@
 \begin{figure}[H]
     \centering
     \caption{Per-capita Household Income Distribution by Region 2019}
-    \rotatebox[origin=c]{90}{\includegraphics[width=\textwidth]{../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf}}
+    \includegraphics[width=\textwidth]{../figures/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf}
     \label{fig:enter-label}
 \end{figure}
 
@@ -55,11 +72,64 @@
 \end{figure}
 
 
+\begin{figure}[H]
+    \caption{Correlation: Predicted Poverty against true by Region}
+    \centering
+         \centering
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p685_scatter.pdf}
+             \caption{Poverty Line: 685}
+         \end{subfigure}
+         \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p365_scatter.pdf}
+             \caption{Poverty Line: 365}
+         \end{subfigure} 
+          \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+             \centering
+             \includegraphics[width=\textwidth]{../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p215_scatter.pdf}
+             \caption{Poverty Line: 215}
+         \end{subfigure} 
+    \subcaption*{Note:} 
+    \end{figure}
+
+
+
+    \begin{figure}[H]
+        \caption{Correlation: Predicted Poverty against true by Region (WB Version)}
+        \centering
+             \centering
+             \begin{subfigure}[b]{0.47\textwidth}
+                 \centering
+                 \includegraphics[width=\textwidth]{../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p685_scatter.pdf}
+                 \caption{Poverty Line: 685}
+             \end{subfigure}
+             \hfill
+             \begin{subfigure}[b]{0.47\textwidth}
+                 \centering
+                 \includegraphics[width=\textwidth]{../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p365_scatter.pdf}
+                 \caption{Poverty Line: 365}
+             \end{subfigure} 
+              \hfill
+             \begin{subfigure}[b]{0.47\textwidth}
+                 \centering
+                 \includegraphics[width=\textwidth]{../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_regions_p215_scatter.pdf}
+                 \caption{Poverty Line: 215}
+             \end{subfigure} 
+        \subcaption*{Note:} 
+        \end{figure}
+    
+    
+
+
 
 \begin{figure}[H]
     \centering
     \caption{Poverty Rate by Region}
-    \rotatebox[origin=c]{90}{\includegraphics[width=\textwidth]{../figures/fig4_prediction_vs_true_poverty_rate_regions.pdf}}
+    \includegraphics[width=\textwidth]{../figures/fig4_prediction_vs_true_poverty_rate_regions.pdf}
     \label{fig:enter-label}
 \end{figure}
 

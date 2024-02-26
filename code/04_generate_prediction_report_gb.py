@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-23' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-26' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -93,19 +93,30 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
         )
         # Assign the calculated shocks back to the main DataFrame
         df.loc[df[region_col] == region, shock_col] = region_shock
+
     return df
 
 
 
 # 2. Obtain filtered dataset:
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2018')
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2016')
+
+ml_dataset_filtered_validation = (
+                                    dpml.filter_ml_dataset(ml_dataset)
+                                        .query('year >= 2017')
+                                        .query('year <= 2019')
+                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                    )
+
+ml_dataset_filtered_true = (
+                                    dpml.filter_ml_dataset(ml_dataset)
+                                        .query('year >= 2017')
+                                        .query('year <= 2019')
+                                        .query('true_year != 2016') # Keep only observations that correspond to 2016 data
+                                    )
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
-
-ml_dataset_filtered_2019 = dpml.filter_ml_dataset(ml_dataset).query('(year==2019) & (duplicate!=1)')
-
-ml_dataset_filtered_validation = dpml.filter_ml_dataset(ml_dataset).query('(year==2019) & (duplicate==1)')
 
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation, scaler_X_train, scaler_Y_train)
 
@@ -121,6 +132,7 @@ best_model_gb = dpml.load_ml_model(model_filename = 'best_weighted_gb_model.jobl
 # Train:
 X_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
 X_standardized_train['const'] = 1
+
 # Validation:
 X_standardized_validation =  X_standardized_validation[X_standardized_validation.columns[best_model_lasso.coef_ !=0]]
 X_standardized_validation['const'] = 1
@@ -162,8 +174,6 @@ ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_val
 
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
-# df['income_pc_hat'] = df['income_pc_hat'] * 1.2
-
 month_to_quarter = {1:1, 2:1, 3:1, 
                     4:4, 5:4, 6:4, 
                     7:7, 8:7, 9:7, 
@@ -172,7 +182,6 @@ month_to_quarter = {1:1, 2:1, 3:1,
 df['quarter'] = df['month'].map(month_to_quarter)
 
 df['n_people'] = 1
-# df['n_people'] = df['mieperho'] * df['pondera_i']
 
 #%% Plot with standard deviation:
 
@@ -180,7 +189,6 @@ plt.clf()
 plt.plot(df.groupby('year').predicted_error.std())
 plt.ylim([0,1])
 plt.savefig('../figures/std_trend.pdf', bbox_inches='tight')
-
 
 #%% Figure 0 (Binned scatterplot:)
 #----------------------------------------------------------------
@@ -252,7 +260,7 @@ sns.histplot(ml_dataset_filtered_validation['income_pc_hat'],
                 fill=False, 
                 element='step'
                 )
-sns.histplot(ml_dataset_filtered_2019['income_pc'], 
+sns.histplot(ml_dataset_filtered_true['income_pc'], 
                 color=settings.color2, 
             #     kde=True, 
                 label='True Income', 
@@ -274,7 +282,7 @@ print('Figure 1 saved')
 plt.clf()
 plt.figure(figsize=(10, 10))
 sns.ecdfplot(ml_dataset_filtered_validation['income_pc_hat'], color=settings.color1, label='Predicted Income')
-sns.ecdfplot(ml_dataset_filtered_2019['income_pc'], color=settings.color2, label='True Income')
+sns.ecdfplot(ml_dataset_filtered_true['income_pc'], color=settings.color2, label='True Income')
 plt.xlim(0, 2500)
 plt.legend()
 plt.xlabel('Income')
@@ -296,7 +304,7 @@ sns.histplot(ml_dataset_filtered_validation['log_income_pc_hat'] ,
                 fill=False, 
                 element='step'
                 )
-sns.histplot(ml_dataset_filtered_2019['log_income_pc'], 
+sns.histplot(ml_dataset_filtered_true['log_income_pc'], 
                 color=settings.color2, 
             #     kde=True, 
                 label='True Income', 
@@ -324,7 +332,7 @@ fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20), sharex=True, sharey=T
 for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].unique()):
     ax = axes[i // n_cols, i % n_cols]
     region_data = ml_dataset_filtered_validation[ml_dataset_filtered_validation['ubigeo_region'] == region]
-    region_data_2019 = ml_dataset_filtered_2019[ml_dataset_filtered_2019['ubigeo_region'] == region]
+    region_data_true = ml_dataset_filtered_true[ml_dataset_filtered_true['ubigeo_region'] == region]
     sns.histplot(region_data['income_pc_hat'], 
                     color=settings.color1, 
                   #   kde=True, 
@@ -333,7 +341,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
                     fill=False, 
                     element='step',
                     ax=ax)
-    sns.histplot(region_data_2019['income_pc'], 
+    sns.histplot(region_data_true['income_pc'], 
                     color=settings.color2, 
                   #   kde=True, 
                     label='True Income', 
@@ -355,11 +363,11 @@ print('Figure 2 saved')
 #-----------------------------------------------------------------------------------
 
 
-ml_dataset_filtered_2019['n_people'] = ml_dataset_filtered_2019['mieperho'] * ml_dataset_filtered_2019['pondera_i']
-household_weight_test = ml_dataset_filtered_2019['n_people']/ml_dataset_filtered_2019.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered_2019['poor_685'] = (ml_dataset_filtered_2019['income_pc'] <= ml_dataset_filtered_2019['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_2019['poor_365'] = (ml_dataset_filtered_2019['income_pc'] <= ml_dataset_filtered_2019['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_2019['poor_215'] = (ml_dataset_filtered_2019['income_pc'] <= ml_dataset_filtered_2019['lp_215usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['n_people'] = ml_dataset_filtered_true['mieperho'] * ml_dataset_filtered_true['pondera_i']
+household_weight_test = ml_dataset_filtered_true['n_people']/ml_dataset_filtered_true.groupby('year')['n_people'].transform('sum')
+ml_dataset_filtered_true['poor_685'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_685usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_365'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_365usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_215'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_215usd_ppp']) * household_weight_test
 
 ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
 household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby('year')['n_people'].transform('sum')
@@ -367,9 +375,9 @@ ml_dataset_filtered_validation['poor_hat_685'] = (ml_dataset_filtered_validation
 ml_dataset_filtered_validation['poor_hat_365'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_365usd_ppp']) * household_weight_prediction
 ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_215usd_ppp']) * household_weight_prediction
 
-porverty_comparison_test = ml_dataset_filtered_2019.loc[:,['poor_685','poor_365','poor_215']].sum()
+porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','poor_685','poor_365','poor_215']].groupby('year').sum()
 
-porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['poor_hat_685','poor_hat_365','poor_hat_215']].sum()
+porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('year').sum()
 
 porverty_comparison = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=0)
 

@@ -207,6 +207,11 @@ class DataPreparationForML:
         # Drop rows that were artificially added and contain only NaNs except for 'ubigeo', 'conglome', and 'year'
         enaho_conglome = enaho_conglome_full.dropna(subset=['income_pc'])
 
+        enaho_conglome['lag_missing'] = enaho_conglome['log_income_pc_lagged1'].isna().astype(int)
+        enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
+        enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
+        enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
+
         # Collapse the data to the conglome level:
         enaho_conglome = (enaho_conglome.sort_values(by=['conglome', 'year'])
                         .loc[:, ['ubigeo',
@@ -216,13 +221,49 @@ class DataPreparationForML:
                                 'log_income_pc_lagged2',
                                 'log_income_pc_lagged3',
                                 'log_income_pc_lagged4',
+                                'lag_missing',
+                                'lag2_missing',
+                                'lag3_missing',
+                                'lag4_missing'
                                 ]]
+                        .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged'})
                         )
         
         return enaho_conglome
     
 
-    def read_enaho_sedlac(self, duplicate_2018 = False):
+    def read_enaho(self):
+
+        enaho_sedlac = pd.read_csv(os.path.join(self.dataPath, 
+                                    self.working, 
+                                    self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
+
+        return enaho_sedlac
+
+
+    def manipulate_enaho(self, enaho):
+
+        # 2. Manipulate identificator variables:
+        enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
+        enaho['year'] = enaho['year']
+
+        # 3. Generate n_people to then compute average income per capita:
+        enaho['n_people'] = enaho['mieperho'] #* enaho['pondera_i']
+        household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
+
+        # 6. Compute income per capita (dependent variable):
+        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
+
+        # 4. Get demeaned version of log income per capita (this will be dependent variable):
+        # basically what it does is log(income_pc) - \mu 
+        enaho['log_income_pc_weighted'] = enaho['log_income_pc'] * household_weight_year
+        enaho['log_income_pc_yearly_average'] = enaho.groupby(['year'])['log_income_pc_weighted'].transform('sum')
+        enaho['log_income_pc_deviation'] = enaho['log_income_pc'] - enaho['log_income_pc_yearly_average']
+
+        return enaho
+            
+
+    def read_enaho_sedlac(self):
 
         """
         This function reads the enaho panel data and returns a dataframe with the following variables:
@@ -245,44 +286,13 @@ class DataPreparationForML:
 
 
         # 1. Read csv
-        enaho = pd.read_csv(os.path.join(self.dataPath, 
-                                         self.working, 
-                                         self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
-
-
+        enaho = self.read_enaho()
 
         # 2. Manipulate identificator variables:
-        enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
-        enaho['year'] = enaho['year']
-
-        # 3. Generate n_people to then compute average income per capita:
-        enaho['n_people'] = enaho['mieperho'] #* enaho['pondera_i']
-        household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
-
-        # 6. Compute income per capita (dependent variable):
-        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
-
-        # 4. Get demeaned version of log income per capita (this will be dependent variable):
-        # basically what it does is log(income_pc) - \mu 
-        enaho['log_income_pc_weighted'] = enaho['log_income_pc'] * household_weight_year
-        enaho['log_income_pc_yearly_average'] = enaho.groupby(['year'])['log_income_pc_weighted'].transform('sum')
-        enaho['log_income_pc_deviation'] = enaho['log_income_pc'] - enaho['log_income_pc_yearly_average']
+        enaho = self.manipulate_enaho(enaho)
 
         # 5. Get sum of income and individuals at the conglome:
-        enaho_conglome = (self.obtain_ccpp_level_lags(enaho)
-                                .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged'})
-                            )
-
-        enaho_conglome['lag_missing'] = enaho_conglome['log_income_pc_lagged'].isna().astype(int)
-        enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
-        enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
-        enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
-
-        if duplicate_2018:
-            enaho_2018 = enaho.query('year==2018').copy().reset_index(drop=True)
-            enaho_2018['year'] = 2019
-            enaho_2018['duplicate'] = 1
-            enaho = pd.concat([enaho, enaho_2018], axis=0)
+        enaho_conglome = self.obtain_ccpp_level_lags(enaho)
 
         # 7. Get conglome data to enaho:
         enaho = (enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
@@ -291,7 +301,8 @@ class DataPreparationForML:
 
         return enaho
 
-    def read_enaho_sedlac(self, duplicate_2018 = False):
+
+    def read_enaho_sedlac_for_prediction(self, year_base = 2016):
 
         """
         This function reads the enaho panel data and returns a dataframe with the following variables:
@@ -314,44 +325,25 @@ class DataPreparationForML:
 
 
         # 1. Read csv
-        enaho = pd.read_csv(os.path.join(self.dataPath, 
-                                         self.working, 
-                                         self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
-
-
+        enaho = self.read_enaho()
 
         # 2. Manipulate identificator variables:
-        enaho['ubigeo'] = 'U-' + enaho['ubigeo'].astype(str).str.zfill(6)
-        enaho['year'] = enaho['year']
+        enaho = self.manipulate_enaho(enaho)
 
-        # 3. Generate n_people to then compute average income per capita:
-        enaho['n_people'] = enaho['mieperho'] #* enaho['pondera_i']
-        household_weight_year = enaho['n_people']/enaho.groupby(['year'])['n_people'].transform('sum')
+        # 3. Get sum of income and individuals at the conglome:
+        enaho_conglome = self.obtain_ccpp_level_lags(enaho)
 
-        # 6. Compute income per capita (dependent variable):
-        enaho['log_income_pc'] = np.log(enaho['income_pc']+0.1)
+        # 4. Repeat 2016 for years 2017 to 2019
 
-        # 4. Get demeaned version of log income per capita (this will be dependent variable):
-        # basically what it does is log(income_pc) - \mu 
-        enaho['log_income_pc_weighted'] = enaho['log_income_pc'] * household_weight_year
-        enaho['log_income_pc_yearly_average'] = enaho.groupby(['year'])['log_income_pc_weighted'].transform('sum')
-        enaho['log_income_pc_deviation'] = enaho['log_income_pc'] - enaho['log_income_pc_yearly_average']
+        enaho_df_list = []
 
-        # 5. Get sum of income and individuals at the conglome:
-        enaho_conglome = (self.obtain_ccpp_level_lags(enaho)
-                                .rename(columns={'log_income_pc_lagged1':'log_income_pc_lagged'})
-                            )
+        for yy in range(year_base + 1, 2020):
+            enaho_yy = enaho.query('year==' + str(year_base)).copy().reset_index(drop=True)
+            enaho_yy['true_year'] = enaho_yy['year']
+            enaho_yy['year'] = yy
+            enaho_df_list.append(enaho_yy)
 
-        enaho_conglome['lag_missing'] = enaho_conglome['log_income_pc_lagged'].isna().astype(int)
-        enaho_conglome['lag2_missing'] = enaho_conglome['log_income_pc_lagged2'].isna().astype(int)
-        enaho_conglome['lag3_missing'] = enaho_conglome['log_income_pc_lagged3'].isna().astype(int)
-        enaho_conglome['lag4_missing'] = enaho_conglome['log_income_pc_lagged4'].isna().astype(int)
-
-        if duplicate_2018:
-            enaho_2018 = enaho.query('year==2018').copy().reset_index(drop=True)
-            enaho_2018['year'] = 2019
-            enaho_2018['duplicate'] = 1
-            enaho = pd.concat([enaho, enaho_2018], axis=0)
+        enaho = pd.concat(enaho_df_list, axis=0)
 
         # 7. Get conglome data to enaho:
         enaho = (enaho.merge(enaho_conglome, on=['ubigeo','conglome', 'year'], how='left')
@@ -359,7 +351,6 @@ class DataPreparationForML:
                         )
 
         return enaho
-    
 
 
     def read_domestic_violence_cases(self):
@@ -722,7 +713,12 @@ class DataPreparationForML:
         conglome_count['count'] = conglome_count.groupby(['conglome']).transform('count')['year']
 
         # Filter out conglomerates that do not have all the years:        
-        ml_dataset_filtered = ml_dataset_filtered.dropna(subset='log_income_pc_lagged').reset_index(drop=True)
+        ml_dataset_filtered = (
+                                ml_dataset_filtered
+                                .dropna(subset='log_income_pc_lagged')
+                                .reset_index(drop=True)
+                                )
+
         return ml_dataset_filtered
 
 
@@ -829,7 +825,15 @@ if __name__ == '__main__':
 
     # Load data:
 
-    enaho = dpml.read_enaho_sedlac(True)
+    enaho_for_training = dpml.read_enaho_sedlac()
+
+    enaho_for_prediction = dpml.read_enaho_sedlac_for_prediction()
+    
+    # Append both datasets:
+
+    enaho = pd.concat([enaho_for_training, enaho_for_prediction], axis=0)
+
+    # Read differest datasets:
 
     domestic_violence = dpml.read_domestic_violence_cases()
 
@@ -848,6 +852,7 @@ if __name__ == '__main__':
     min_temperature = dpml.read_min_temperature()
 
     # Merge data:
+
     ml_dataset = (enaho.merge(police_reports_by_ubigeo, on=['ubigeo', 'year'], how='left')
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(labor, on=['ubigeo', 'year', 'month'], how='left')
@@ -859,8 +864,8 @@ if __name__ == '__main__':
                         )
     
     # Add trend and trend squared:
-    ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
 
+    ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
     
     ml_dataset['trend2'] = ml_dataset['trend']**2
 
@@ -868,17 +873,17 @@ if __name__ == '__main__':
 
 
     # Get conglome pool (These are centroids to get weather data):
-    conglome_panel = (enaho[['conglome', 'ubigeo', 'strata', 'latitud', 'longitud', 'year']]
-                      .groupby(['conglome', 'ubigeo', 'strata','year'])
-                      .mean()
-                      .reset_index()
-                      )
+    # conglome_panel = (enaho[['conglome', 'ubigeo', 'strata', 'latitud', 'longitud', 'year']]
+    #                   .groupby(['conglome', 'ubigeo', 'strata','year'])
+    #                   .mean()
+    #                   .reset_index()
+    #                   )
     
-    conglome_panel['centroid_id'] = conglome_panel['ubigeo'].astype(str) + '_' + conglome_panel['conglome'].astype(str).str.zfill(5) + '_' + conglome_panel['year'].astype(str)
+    # conglome_panel['centroid_id'] = conglome_panel['ubigeo'].astype(str) + '_' + conglome_panel['conglome'].astype(str).str.zfill(5) + '_' + conglome_panel['year'].astype(str)
 
-    repeated_conglome_panel = pd.concat([conglome_panel.assign(month=i) for i in range(1, 13)], ignore_index=True)
+    # repeated_conglome_panel = pd.concat([conglome_panel.assign(month=i) for i in range(1, 13)], ignore_index=True)
 
-    repeated_conglome_panel.to_csv(os.path.join(dpml.dataPath, dpml.raw,'peru/data', 'conglome_panel_final_version.csv'), index=False)
+    # repeated_conglome_panel.to_csv(os.path.join(dpml.dataPath, dpml.raw,'peru/data', 'conglome_panel_final_version.csv'), index=False)
 
 
 
