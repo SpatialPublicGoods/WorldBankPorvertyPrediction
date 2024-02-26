@@ -176,7 +176,9 @@ df['n_people'] = 1
 
 #%% Plot with standard deviation:
 
+plt.clf()
 plt.plot(df.groupby('year').predicted_error.std())
+plt.ylim([0,1])
 plt.savefig('../figures/std_trend.pdf', bbox_inches='tight')
 
 
