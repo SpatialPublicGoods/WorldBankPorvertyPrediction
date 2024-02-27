@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
-from modules.utils_general import utils_general
 
 #--------------
 # Paths
@@ -62,7 +61,9 @@ files_sheets = {
     2016: ('indicadores_planilla_distrital (1).xls',        'EMPRESAS',           'Trab_mes_Sexo', 'Trab_Cat_Ocup_Mes', 'Rem_Sit_Edu'),
     2017: ('IND (1).xlsx',                                  'EMPRESAS_17',        'Trab_Sex_17',   'Trab_Cat_Ocup_17',  'Rem_Sit_Edu_17'),
     2018: ('DISTRITAL__2018 (1).xlsx',                      'EMPRESAS_18',        'Trab_Sex_18',   'Trab_Ocup_18',      'Rem_Sit_edu_18'),
-    2019: ('DISTRITAL__2019_PLANILLA_ELECTRÓNICA (1).xlsx', 'EMPRESAS_19',        'Trab_Sex_19',   'Trab_Ocup_19',      'Rem_Sit_edu_19')
+    2019: ('DISTRITAL__2019_PLANILLA_ELECTRÓNICA (1).xlsx', 'EMPRESAS_19',        'Trab_Sex_19',   'Trab_Ocup_19',      'Rem_Sit_edu_19'),
+    2020: ('DISTRITAL__2020 (1).xlsx',                      'EMPRESAS_20',        'Trab_Sex_20',   'Trab_Ocup_20',      'Rem_Sit_Edu_20'),
+    2021: ('DISTRITAL__2021 _F.xlsx',                       'EMPRESAS_21',        'Trab_Sex_21',   'Trab_Ocup_21',      'Rem_Sit_Edu_21')
 }
 
 #--------------
@@ -77,9 +78,9 @@ salaries_education = {}
 # Opening files
 #--------------
 for year, (filename, company_sheet, worker_sex_sheet, worker_occupation_sheet, salary_sheet) in files_sheets.items():
-    full_path = os.path.join(o1_path, 'planilla_electronica', filename)
-    companies[year] = pd.read_excel(full_path, sheet_name=company_sheet)
-    workers_sex[year] = pd.read_excel(full_path, sheet_name=worker_sex_sheet)
+    full_path                = os.path.join(o1_path, 'planilla_electronica', filename)
+    companies[year]          = pd.read_excel(full_path, sheet_name=company_sheet)
+    workers_sex[year]        = pd.read_excel(full_path, sheet_name=worker_sex_sheet)
     workers_occupation[year] = pd.read_excel(full_path, sheet_name=worker_occupation_sheet)
     salaries_education[year] = pd.read_excel(full_path, sheet_name=salary_sheet)
 
@@ -106,6 +107,12 @@ workers_occupation_copies = {year: df.copy() for year, df in workers_occupation.
 salaries_education_copies = {year: df.copy() for year, df in salaries_education.items()}
 
 #--------------
+# Years
+#--------------
+year_start = 2014
+year_end   = 2021
+
+#--------------
 # Companies
 #--------------
 def process_dataframe(df, year):
@@ -124,13 +131,14 @@ def process_dataframe(df, year):
 
     return df_processed[['ubigeo', 'year', 'month', 'companies']]
 
-for year in range(2014, 2020):
+for year in range(year_start, year_end + 1):
     companies_copies[year] = process_dataframe(companies_copies[year], year)
 
 all_companies = pd.concat(companies_copies.values(), ignore_index=True)
 all_companies = all_companies[(all_companies['ubigeo'] != '00000') & (all_companies['ubigeo'] != '000000')]
 all_companies.sort_values(by=['ubigeo', 'year', 'month'], inplace=True)
 all_companies.reset_index(drop=True, inplace=True)
+all_companies = all_companies.dropna(subset=['ubigeo'])
 
 #--------------
 # Workers by sex
@@ -151,7 +159,7 @@ def process_data_for_year(df, year):
 
     return df
 
-for year in range(2014, 2020):
+for year in range(year_start, year_end + 1):
     workers_sex_copies[year] = process_data_for_year(workers_sex_copies[year], year)
 
 all_workers_sex = pd.concat(workers_sex_copies.values(), ignore_index=True)
@@ -169,10 +177,12 @@ row_trim_values = {
     2016: 10,
     2017: 11,
     2018: 13,
-    2019: 11
+    2019: 11,
+    2020: 11,
+    2021: 11
 }
 
-for year in range(2014, 2020):
+for year in range(year_start, year_end + 1):
 
     row_trim = row_trim_values.get(year)
     df = workers_occupation_copies[year].iloc[row_trim:-5].drop(workers_occupation_copies[year].columns[1], axis=1)
@@ -191,7 +201,7 @@ for year in range(2014, 2020):
         workers_occupation_copies[year] = df_final[['ubigeo', 'year', 'month', 'exe', 'wor', 'emp', 'nd']]
 
     #_________________________________
-    elif (year>=2017) & (year<=2019):
+    elif (year>=2017) & (year<=year_end):
     #_________________________________
         new_column_names = ['ubigeo']
         categories = ['exe', 'wor', 'emp', 'nd']
@@ -234,7 +244,9 @@ row_trim_values = {
     2016: 7,
     2017: 10,
     2018: 11,
-    2019: 11
+    2019: 11,
+    2020: 11,
+    2021: 10
 }
 
 col_trim_values = {
@@ -243,7 +255,9 @@ col_trim_values = {
     2016: [0, 24],
     2017: [0, 68, 69, 70],
     2018: [0, 68, 69, 70],
-    2019: [0, 68, 69, 70]
+    2019: [0, 68, 69, 70],
+    2020: [0, 68, 69, 70],
+    2021: [0, 68, 69, 70]
 }
 
 df_workers = all_workers_sex.copy()
@@ -254,7 +268,7 @@ df_workers['weight_m']  = (df_workers['m']  / df_workers['total']).fillna(0)
 df_workers['weight_si'] = (df_workers['si'] / df_workers['total']).fillna(0)
 df_workers = df_workers[df_workers['month'] == 12][['ubigeo', 'year', 'weight_f', 'weight_m', 'weight_si']]
 
-for year in range(2014, 2020):
+for year in range(year_start, year_end + 1):
 
     row_trim = row_trim_values.get(year)
     col_trim = col_trim_values.get(year)
@@ -271,7 +285,7 @@ for year in range(2014, 2020):
         salaries_education_copies[year] = df
 
     #_________________________________
-    elif (year>=2017) & (year<=2019):
+    elif (year>=2017) & (year<=year_end):
     #_________________________________
         df.columns = ['ubigeo', 'salaries_si', 'salaries_m', 'salaries_f', 'year']
         df.replace(0, np.nan, inplace=True)
@@ -294,6 +308,9 @@ for year in range(2014, 2020):
 
 all_salaries = pd.concat(salaries_education_copies, ignore_index=True)
 all_salaries = all_salaries[(all_salaries['ubigeo'] != '00000') & (all_salaries['ubigeo'] != '000000')]
+all_salaries['ubigeo'] = all_salaries['ubigeo'].replace('90511', '090511')
+all_salaries = all_salaries.dropna(subset=['ubigeo'])
+all_salaries = all_salaries[~all_salaries['ubigeo'].str.contains("nan")]
 all_salaries.sort_values(by=['ubigeo', 'year'], inplace=True)
 all_salaries.reset_index(drop=True, inplace=True)
 
