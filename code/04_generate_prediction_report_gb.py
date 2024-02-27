@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-26' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-27' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -101,19 +101,21 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2016')
+year_end = 2019
+
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end =year_end).query('year<=2016')
 
 ml_dataset_filtered_validation = (
-                                    dpml.filter_ml_dataset(ml_dataset)
+                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2019')
+                                        .query('year <= 2020')
                                         .query('true_year==2016') # Keep only observations that correspond to 2016 data
                                     )
 
 ml_dataset_filtered_true = (
-                                    dpml.filter_ml_dataset(ml_dataset)
+                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2019')
+                                        .query('year <= 2020')
                                         .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
                                     )
 
