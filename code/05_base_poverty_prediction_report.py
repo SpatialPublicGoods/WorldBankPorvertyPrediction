@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-03' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-26' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -64,23 +64,37 @@ ml_dataset = dpml.input_missing_values(ml_dataset)
 
 # 2. Obtain filtered dataset:
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2018')
 
-ml_dataset_filtered_prediction = dpml.filter_ml_dataset(ml_dataset).query('year==2018')
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2016')
 
-ml_dataset_filtered_test = dpml.filter_ml_dataset(ml_dataset).query('year==2019')
+ml_dataset_filtered_validation = (
+                                    dpml.filter_ml_dataset(ml_dataset)
+                                        .query('year >= 2017')
+                                        .query('year <= 2019')
+                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                    )
+
+ml_dataset_filtered_true = (
+                                    dpml.filter_ml_dataset(ml_dataset)
+                                        .query('year >= 2017')
+                                        .query('year <= 2019')
+                                        .query('true_year != 2016') # Keep only observations that correspond to 2016 data
+                                    )
+
+growth_rate = {2017: 1.04, 
+                2018: 1.04 * 1.025, 
+                2019: 1.04 * 1.025 * 1.04}
 
 
 # 5. Predict income
 ml_dataset_filtered_train['income_pc_hat'] = ml_dataset_filtered_train['income_pc']
 
-ml_dataset_filtered_prediction['income_pc_hat'] = ml_dataset_filtered_prediction['income_pc'] * (1.04) 
-
+ml_dataset_filtered_validation['income_pc_hat'] = ml_dataset_filtered_validation['income_pc'] * ml_dataset_filtered_validation['year'].map(growth_rate)
 
 
 # 5. Compiling both datasets and creating some variables:
 
-df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_prediction], axis=0)
+df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
 # df['income_pc_hat'] = df['income_pc_hat'] * 1.2
 
@@ -102,16 +116,17 @@ df['n_people'] = df['mieperho'] * df['pondera_i']
 
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.histplot(ml_dataset_filtered_prediction['income_pc_hat'], 
-                color=settings.color1, kde=True, 
+sns.histplot(ml_dataset_filtered_validation['income_pc_hat'], 
+                color=settings.color1, 
+                # kde=True, 
                 label='Predicted Income', 
                 stat='density', 
                 fill=False, 
                 element='step'
                 )
-sns.histplot(ml_dataset_filtered_test['income_pc'], 
+sns.histplot(ml_dataset_filtered_true['income_pc'], 
                 color=settings.color2, 
-                kde=True, 
+                # kde=True, 
                 label='True Income', 
                 stat='density', 
                 fill=False, 
@@ -128,8 +143,8 @@ print('Figure 1 saved')
 
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.ecdfplot(ml_dataset_filtered_prediction['income_pc_hat'], color=settings.color1, label='Predicted Income')
-sns.ecdfplot(ml_dataset_filtered_test['income_pc'], color=settings.color2, label='True Income')
+sns.ecdfplot(ml_dataset_filtered_validation['income_pc_hat'], color=settings.color1, label='Predicted Income')
+sns.ecdfplot(ml_dataset_filtered_true['income_pc'], color=settings.color2, label='True Income')
 plt.xlim(0, 2500)
 plt.legend()
 plt.xlabel('Income')
@@ -147,13 +162,13 @@ n_rows = 5
 n_cols = 5
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20), sharex=True, sharey=True)
 
-for i, region in enumerate(ml_dataset_filtered_prediction['ubigeo_region'].unique()):
+for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].unique()):
     ax = axes[i // n_cols, i % n_cols]
-    region_data_predicted = ml_dataset_filtered_prediction[ml_dataset_filtered_prediction['ubigeo_region'] == region]
-    region_data_true = ml_dataset_filtered_test[ml_dataset_filtered_test['ubigeo_region'] == region]
-    sns.histplot(region_data_predicted['income_pc_hat'], 
+    region_data = ml_dataset_filtered_validation[ml_dataset_filtered_validation['ubigeo_region'] == region]
+    region_data_true = ml_dataset_filtered_true[ml_dataset_filtered_true['ubigeo_region'] == region]
+    sns.histplot(region_data['income_pc_hat'], 
                     color=settings.color1, 
-                    kde=True, 
+                  #   kde=True, 
                     label='Predicted Income', 
                     stat='density', 
                     fill=False, 
@@ -161,7 +176,7 @@ for i, region in enumerate(ml_dataset_filtered_prediction['ubigeo_region'].uniqu
                     ax=ax)
     sns.histplot(region_data_true['income_pc'], 
                     color=settings.color2, 
-                    kde=True, 
+                  #   kde=True, 
                     label='True Income', 
                     stat='density', 
                     fill=False, 
@@ -170,7 +185,7 @@ for i, region in enumerate(ml_dataset_filtered_prediction['ubigeo_region'].uniqu
     ax.set_xlim(0, 2000)
     ax.set_title(region)
     ax.legend()
-    plt.savefig('../figures/baseline_report/fig2_prediction_vs_true_income_by_region.pdf', bbox_inches='tight')
+    plt.savefig('../figures/baseline_report/fig2_prediction_vs_true_income_by_region_lasso_training_weighted.pdf', bbox_inches='tight')
 
 print('Figure 2 saved')
 
@@ -178,38 +193,38 @@ print('Figure 2 saved')
 # Poverty Rate National 
 #-----------------------------------------------------------------------------------
 
-ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
-household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
 
-ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
-household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
+# True data: (2017-2019)
+ml_dataset_filtered_true['n_people'] = ml_dataset_filtered_true['mieperho'] * ml_dataset_filtered_true['pondera_i']
+household_weight_test = ml_dataset_filtered_true['n_people']/ml_dataset_filtered_true.groupby('year')['n_people'].transform('sum')
+ml_dataset_filtered_true['poor_685'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_685usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_365'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_365usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_215'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_215usd_ppp']) * household_weight_test
 
-porverty_comparison_test = ml_dataset_filtered_test.loc[:,['poor_685','poor_365','poor_215']].sum()
+# Predicted data: (using 2016 data)
+ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
+household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby('year')['n_people'].transform('sum')
+ml_dataset_filtered_validation['poor_hat_685'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_685usd_ppp']) * household_weight_prediction
+ml_dataset_filtered_validation['poor_hat_365'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_365usd_ppp']) * household_weight_prediction
+ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_215usd_ppp']) * household_weight_prediction
 
-porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['poor_hat_685','poor_hat_365','poor_hat_215']].sum()
-
-porverty_comparison = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=0)
-
-
-porverty_comparison = pd.DataFrame(porverty_comparison).rename(columns={0:'PovertyRate'}).reset_index()
-
-porverty_comparison[['Poverty Line', 'Type']] = porverty_comparison['index'].str.rsplit('_', n=1, expand=True)
-
-porverty_comparison = porverty_comparison.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
+# Get difference between the true and predicted national rate:
+porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','poor_685','poor_365','poor_215']].groupby('year').sum()
+porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('year').sum()
+porverty_comparison_diff = porverty_comparison_test.copy()
+porverty_comparison_diff.iloc[:,:] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
 
 
+# Plotting
 plt.clf()
-porverty_comparison.plot(kind='bar', figsize=(10, 10), color=[settings.color1, settings.color2]) 
-plt.ylabel('Sum')
-plt.xlabel('Poverty Line')
-plt.xticks(rotation=45)
-plt.ylim(0, .5)
+ax = porverty_comparison_diff.plot.bar(figsize=(10, 6), width=0.8)
+ax.set_xlabel('Poverty Threshold')
+ax.set_ylabel('Difference')
+ax.set_title('Poverty Comparison by Year')
+ax.set_xticklabels(porverty_comparison_diff.index, rotation=45)
+plt.legend(title='Year', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.ylim([-.1, .1])
+plt.tight_layout()
 plt.savefig('../figures/baseline_report/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
 print('Figure 3 saved')
@@ -218,23 +233,24 @@ print('Figure 3 saved')
 # Replicate poverty rate (by region)
 #----------------------------------------------------
 
-ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
-household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
-ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
 
-ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
-household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
-ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
+# True data: (2017-2019)
+ml_dataset_filtered_true['n_people'] = ml_dataset_filtered_true['mieperho'] * ml_dataset_filtered_true['pondera_i']
+household_weight_test = ml_dataset_filtered_true['n_people']/ml_dataset_filtered_true.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
+ml_dataset_filtered_true['poor_685'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_685usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_365'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_365usd_ppp']) * household_weight_test
+ml_dataset_filtered_true['poor_215'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_215usd_ppp']) * household_weight_test
 
+# Predicted data: (using 2016 data)
+ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
+household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
+ml_dataset_filtered_validation['poor_hat_685'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_685usd_ppp']) * household_weight_prediction
+ml_dataset_filtered_validation['poor_hat_365'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_365usd_ppp']) * household_weight_prediction
+ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_215usd_ppp']) * household_weight_prediction
 
-porverty_comparison_test = ml_dataset_filtered_test.loc[:,['ubigeo_region','poor_685','poor_365','poor_215']].groupby('ubigeo_region').sum()
-
-porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['ubigeo_region','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('ubigeo_region').sum()
-
+# Get predicted and true poverty rate by year and region:
+porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215']].groupby(['ubigeo_region', 'year']).sum()
+porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','ubigeo_region','poor_hat_685','poor_hat_365','poor_hat_215']].groupby(['ubigeo_region', 'year']).sum()
 porverty_comparison_region = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
 
 
@@ -245,7 +261,7 @@ n_cols = 5
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
 
 # Loop over each ubigeo_region
-for i, (region, data) in enumerate(porverty_comparison_region.iterrows()):
+for i, (region, data) in enumerate(porverty_comparison_region.query('year == 2017').iterrows()):
     #
     data = data.reset_index()
     data.columns = ['index', 'PovertyRate']
@@ -269,21 +285,36 @@ plt.savefig('../figures/baseline_report/fig4_prediction_vs_true_poverty_rate_reg
 print('Figure 4 saved')
 
 
+
 #%% Figure 4.2 (fig4_2_prediction_vs_true_poverty_rate_regions_scatter):
 
 # Scatter plot of predicted poverty rate vs true poverty rate
 #--------------------------------------------------------------
 
 # Poverty 685:
+#--------------------------------------------------------------
+
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region['poor_685'], 
-                  y=porverty_comparison_region['poor_hat_685'], 
-                  label='LP 685', 
+sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_685'], 
+                  y=porverty_comparison_region.query('year == 2017')['poor_hat_685'], 
+                  label='2017', 
                   color=settings.color1,
                   s=150
                 )
-sns.lineplot(x=[0,.7], y=[0,.7], color=settings.color2)
+sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_685'], 
+                  y=porverty_comparison_region.query('year == 2018')['poor_hat_685'], 
+                  label='2018', 
+                  color=settings.color2,
+                  s=150
+                )
+sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_685'], 
+                  y=porverty_comparison_region.query('year == 2019')['poor_hat_685'], 
+                  label='2019', 
+                  color=settings.color3,
+                  s=150
+                )
+sns.lineplot(x=[0,.7], y=[0,.7], color=settings.color4)
 plt.xlabel('True Poverty Rate')
 plt.ylabel('Predicted Poverty Rate')
 plt.legend()
@@ -292,14 +323,29 @@ plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_r
 
 
 # Poverty 365:
+#--------------------------------------------------------------
+
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region['poor_365'], 
-                y=porverty_comparison_region['poor_hat_365'], 
-                label='LP 365', 
+sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_365'], 
+                  y=porverty_comparison_region.query('year == 2017')['poor_hat_365'], 
+                  label='2017', 
                   color=settings.color1,
                   s=150
                 )
+sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_365'], 
+                  y=porverty_comparison_region.query('year == 2018')['poor_hat_365'], 
+                  label='2018', 
+                  color=settings.color2,
+                  s=150
+                )
+sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_365'], 
+                  y=porverty_comparison_region.query('year == 2019')['poor_hat_365'], 
+                  label='2019', 
+                  color=settings.color3,
+                  s=150
+                )
+
 sns.lineplot(x=[0,.31], y=[0,.31], color=settings.color2)
 plt.xlabel('True Poverty Rate')
 plt.ylabel('Predicted Poverty Rate')
@@ -309,14 +355,29 @@ plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_r
 
 
 # Poverty 215:
+#--------------------------------------------------------------
+
 plt.clf()
 plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region['poor_215'], 
-                y=porverty_comparison_region['poor_hat_215'], 
-                label='LP 215', 
+sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_215'], 
+                  y=porverty_comparison_region.query('year == 2017')['poor_hat_215'], 
+                  label='2017', 
                   color=settings.color1,
                   s=150
                 )
+sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_215'], 
+                  y=porverty_comparison_region.query('year == 2018')['poor_hat_215'], 
+                  label='2018', 
+                  color=settings.color2,
+                  s=150
+                )
+sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_215'], 
+                  y=porverty_comparison_region.query('year == 2019')['poor_hat_215'], 
+                  label='2019', 
+                  color=settings.color3,
+                  s=150
+                )
+
 sns.lineplot(x=[0,.125], y=[0,.125], color=settings.color2)
 plt.xlabel('True Poverty Rate')
 plt.ylabel('Predicted Poverty Rate')
@@ -326,82 +387,84 @@ plt.savefig('../figures/baseline_report/fig4_2_prediction_vs_true_poverty_rate_r
 
 
 
+time_series_analysis = False
+
+# if time_series_analysis:
 
 
+#   #%% Figure 5 (fig5_prediction_vs_true_poverty_rate_urban_rural): 
+#   # Replicate poverty rate urban-rural
+#   #----------------------------------------------------
 
-#%% Figure 5 (fig5_prediction_vs_true_poverty_rate_urban_rural): 
-# Replicate poverty rate urban-rural
-#----------------------------------------------------
+#   ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
+#   household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby(['year', 'urbano'])['n_people'].transform('sum')
+#   ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
+#   ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
+#   ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
 
-ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
-household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby(['year', 'urbano'])['n_people'].transform('sum')
-ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
-
-ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
-household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby(['year', 'urbano'])['n_people'].transform('sum')
-ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
-
-
-porverty_comparison_test = ml_dataset_filtered_test.loc[:,['urbano','poor_685','poor_365','poor_215']].groupby('urbano').sum()
-
-porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['urbano','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('urbano').sum()
-
-porverty_comparison_region = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
+#   ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
+#   household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby(['year', 'urbano'])['n_people'].transform('sum')
+#   ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
+#   ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
+#   ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
 
 
-plt.clf()
+#   porverty_comparison_test = ml_dataset_filtered_test.loc[:,['urbano','poor_685','poor_365','poor_215']].groupby('urbano').sum()
 
-n_rows = 2
-n_cols = 2
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
+#   porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['urbano','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('urbano').sum()
 
-# Loop over each ubigeo_region
-for i, (region, data) in enumerate(porverty_comparison_region.iterrows()):
-    #
-    data = data.reset_index()
-    data.columns = ['index', 'PovertyRate']
-    data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
-    data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
-    #
-    ax = axes[i // n_cols, i % n_cols]
-    data.plot(kind='bar', ax=ax)
-    ax.set_title(region)
-    ax.set_ylabel('Rate')
-    ax.set_xlabel('Poverty Line')
-    ax.set_ylim(0, .8)
-    plt.xticks(rotation=90)
+#   porverty_comparison_region = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
 
-# Hide unused subplots
-for j in range(i + 1, n_rows * n_cols):
-    axes[j // n_cols, j % n_cols].axis('off')
 
-plt.savefig('../figures/baseline_report/fig5_prediction_vs_true_poverty_rate_urban_rural.pdf', bbox_inches='tight')
+#   plt.clf()
 
-print('Figure 5 saved')
+#   n_rows = 2
+#   n_cols = 2
+#   fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
 
-#%% Figure 7 (fig7_diff_nacional): 
-# Time series average income plot by area (Yearly)
-#----------------------------------------------------
+#   # Loop over each ubigeo_region
+#   for i, (region, data) in enumerate(porverty_comparison_region.iterrows()):
+#       #
+#       data = data.reset_index()
+#       data.columns = ['index', 'PovertyRate']
+#       data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
+#       data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
+#       #
+#       ax = axes[i // n_cols, i % n_cols]
+#       data.plot(kind='bar', ax=ax)
+#       ax.set_title(region)
+#       ax.set_ylabel('Rate')
+#       ax.set_xlabel('Poverty Line')
+#       ax.set_ylim(0, .8)
+#       plt.xticks(rotation=90)
 
-ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
-household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
+#   # Hide unused subplots
+#   for j in range(i + 1, n_rows * n_cols):
+#       axes[j // n_cols, j % n_cols].axis('off')
 
-ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
-household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby('year')['n_people'].transform('sum')
-ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
+#   plt.savefig('../figures/baseline_report/fig5_prediction_vs_true_poverty_rate_urban_rural.pdf', bbox_inches='tight')
 
-porverty_comparison_test = ml_dataset_filtered_test.loc[:,['poor_685','poor_365','poor_215']].sum()
+#   print('Figure 5 saved')
 
-porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['poor_hat_685','poor_hat_365','poor_hat_215']].sum()
+#   #%% Figure 7 (fig7_diff_nacional): 
+#   # Time series average income plot by area (Yearly)
+#   #----------------------------------------------------
 
-diff_national = porverty_comparison_pred.values - porverty_comparison_test.values
+#   ml_dataset_filtered_test['n_people'] = ml_dataset_filtered_test['mieperho'] * ml_dataset_filtered_test['pondera_i']
+#   household_weight_test = ml_dataset_filtered_test['n_people']/ml_dataset_filtered_test.groupby('year')['n_people'].transform('sum')
+#   ml_dataset_filtered_test['poor_685'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_685usd_ppp']) * household_weight_test
+#   ml_dataset_filtered_test['poor_365'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_365usd_ppp']) * household_weight_test
+#   ml_dataset_filtered_test['poor_215'] = (ml_dataset_filtered_test['income_pc'] <= ml_dataset_filtered_test['lp_215usd_ppp']) * household_weight_test
+
+#   ml_dataset_filtered_prediction['n_people'] = ml_dataset_filtered_prediction['mieperho'] * ml_dataset_filtered_prediction['pondera_i']
+#   household_weight_prediction = ml_dataset_filtered_prediction['n_people']/ml_dataset_filtered_prediction.groupby('year')['n_people'].transform('sum')
+#   ml_dataset_filtered_prediction['poor_hat_685'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_685usd_ppp']) * household_weight_prediction
+#   ml_dataset_filtered_prediction['poor_hat_365'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_365usd_ppp']) * household_weight_prediction
+#   ml_dataset_filtered_prediction['poor_hat_215'] = (ml_dataset_filtered_prediction['income_pc_hat'] <= ml_dataset_filtered_prediction['lp_215usd_ppp']) * household_weight_prediction
+
+#   porverty_comparison_test = ml_dataset_filtered_test.loc[:,['poor_685','poor_365','poor_215']].sum()
+
+#   porverty_comparison_pred = ml_dataset_filtered_prediction.loc[:,['poor_hat_685','poor_hat_365','poor_hat_215']].sum()
+
+#   diff_national = porverty_comparison_pred.values - porverty_comparison_test.values
 

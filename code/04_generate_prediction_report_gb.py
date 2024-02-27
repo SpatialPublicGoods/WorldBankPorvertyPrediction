@@ -114,7 +114,7 @@ ml_dataset_filtered_true = (
                                     dpml.filter_ml_dataset(ml_dataset)
                                         .query('year >= 2017')
                                         .query('year <= 2019')
-                                        .query('true_year != 2016') # Keep only observations that correspond to 2016 data
+                                        .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
                                     )
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
