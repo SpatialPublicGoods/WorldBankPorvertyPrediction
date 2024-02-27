@@ -28,7 +28,7 @@ def append_enaho_sedlac():
     
     list_enaho_datasets = []
 
-    for yy in range(2008, 2021):
+    for yy in range(2008, 2022):
 
         print('Reading ENAHO data for year: ', yy)
         

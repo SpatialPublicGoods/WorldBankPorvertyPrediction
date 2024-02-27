@@ -302,7 +302,7 @@ class DataPreparationForML:
         return enaho
 
 
-    def read_enaho_sedlac_for_prediction(self, year_base = 2016):
+    def read_enaho_sedlac_for_prediction(self, year_base = 2016, year_end = 2019):
 
         """
         This function reads the enaho panel data and returns a dataframe with the following variables:
@@ -333,11 +333,11 @@ class DataPreparationForML:
         # 3. Get sum of income and individuals at the conglome:
         enaho_conglome = self.obtain_ccpp_level_lags(enaho)
 
-        # 4. Repeat 2016 for years 2017 to 2019
+        # 4. Repeat 2016 for year+base to year_end:
 
         enaho_df_list = []
 
-        for yy in range(year_base + 1, 2020):
+        for yy in range(year_base + 1, year_end):
             enaho_yy = enaho.query('year==' + str(year_base)).copy().reset_index(drop=True)
             enaho_yy['true_year'] = enaho_yy['year']
             enaho_yy['year'] = yy
@@ -827,7 +827,10 @@ if __name__ == '__main__':
 
     enaho_for_training = dpml.read_enaho_sedlac()
 
-    enaho_for_prediction = dpml.read_enaho_sedlac_for_prediction()
+    enaho_for_prediction = dpml.read_enaho_sedlac_for_prediction(
+        year_base=2016, 
+        year_end=2021
+    )
     
     # Append both datasets:
 
@@ -871,6 +874,12 @@ if __name__ == '__main__':
 
     ml_dataset.to_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + date +'.csv'))
 
+
+    # df_old= pd.read_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + '2024-02-26' +'.csv'))
+    
+    # df_new= pd.read_csv(os.path.join(dpml.dataPath, dpml.clean, 'ml_dataset_' + '2024-02-27' +'.csv'))
+
+    # df_old.columns.difference(df_new.columns)
 
     # Get conglome pool (These are centroids to get weather data):
     # conglome_panel = (enaho[['conglome', 'ubigeo', 'strata', 'latitud', 'longitud', 'year']]

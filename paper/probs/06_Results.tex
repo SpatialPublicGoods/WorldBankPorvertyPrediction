@@ -65,11 +65,23 @@
 
 
 \begin{figure}[H]
-    \centering
     \caption{Poverty Rate Predicted vs True National}
-    \includegraphics[width=\textwidth]{../figures/fig3_prediction_vs_true_poverty_rate_national.pdf}
-    \label{fig:enter-label}
+    \centering
+         \centering
+         \begin{subfigure}[b]{0.47\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../figures/fig3_prediction_vs_true_poverty_rate_national.pdf}        
+            \caption{Gradient Boosting}
+         \end{subfigure}
+         \hfill
+         \begin{subfigure}[b]{0.47\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../figures/baseline_report/fig3_prediction_vs_true_poverty_rate_national.pdf}        
+            \caption{WB Version}
+         \end{subfigure} 
+    \subcaption*{Note:} 
 \end{figure}
+
 
 
 \begin{figure}[H]
@@ -94,7 +106,7 @@
              \caption{Poverty Line: 215}
          \end{subfigure} 
     \subcaption*{Note:} 
-    \end{figure}
+\end{figure}
 
 
 
