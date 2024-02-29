@@ -33,7 +33,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-27' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-02-29' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -101,7 +101,7 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
-year_end = 2019
+year_end = 2020
 
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end =year_end).query('year<=2016')
 
