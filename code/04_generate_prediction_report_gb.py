@@ -118,19 +118,34 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
 
 year_end = 2020
 
+<<<<<<< HEAD
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<=2016')
 
 ml_dataset_filtered_validation = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
                                         .query('year <= ' + str(year_end))
+=======
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end =year_end).query('year<=2016')
+
+ml_dataset_filtered_validation = (
+                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
+                                        .query('year >= 2017')
+                                        .query('year <= 2020')
+>>>>>>> 3de996e4d670462f1d2002f09325e8ca99502037
                                         .query('true_year==2016') # Keep only observations that correspond to 2016 data
                                     )
 
 ml_dataset_filtered_true = (
+<<<<<<< HEAD
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
                                         .query('year <= ' + str(year_end))
+=======
+                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
+                                        .query('year >= 2017')
+                                        .query('year <= 2020')
+>>>>>>> 3de996e4d670462f1d2002f09325e8ca99502037
                                         .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
                                     )
 
