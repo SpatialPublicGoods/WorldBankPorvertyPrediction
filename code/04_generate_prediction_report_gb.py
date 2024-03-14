@@ -1,4 +1,5 @@
 import os
+import socket
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -23,17 +24,31 @@ from joblib import Parallel, delayed
 from global_settings import global_settings
 
 
+def get_data_path():
+    # Get the computer's network name
+    hostname = socket.gethostname()
+    
+    # Define data paths for different hostnames
+    if hostname == 'DESKTOP-PF6QSJO':  # Replace with your actual computer name
+        data_path = 'J:/My Drive/PovertyPredictionRealTime/data'
+    else:
+        data_path = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+
+    # Check if the data path exists
+    if not os.path.exists(data_path):
+        raise Exception(f"Data path does not exist: {data_path}")
+
+    return data_path
+
 
 #%% Get current working directory and parameters:
 
 # Parameters
-dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
-
-dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+dataPath = get_data_path()
 
 freq = 'm'
 
-date = '2024-02-26' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-03-14' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -101,26 +116,27 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2016')
+year_end = 2020
+
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<=2016')
 
 ml_dataset_filtered_validation = (
-                                    dpml.filter_ml_dataset(ml_dataset)
+                                    dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2019')
+                                        .query('year <= ' + str(year_end))
                                         .query('true_year==2016') # Keep only observations that correspond to 2016 data
                                     )
 
 ml_dataset_filtered_true = (
-                                    dpml.filter_ml_dataset(ml_dataset)
+                                    dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2019')
+                                        .query('year <= ' + str(year_end))
                                         .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
                                     )
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
 
 Y_standardized_validation, X_standardized_validation, scaler_X_validation, scaler_Y_validation = dpml.get_depvar_and_features(ml_dataset_filtered_validation, scaler_X_train, scaler_Y_train)
-
 
 #--------------------------------------------------------------------------
 # 3. Load best model:

@@ -693,7 +693,7 @@ class DataPreparationForML:
 
 
 
-    def filter_ml_dataset(self, ml_dataset):
+    def filter_ml_dataset(self, ml_dataset, year_end = 2019):
         """
         Filter the dataset to only include the observations that have all the years
         Parameters
@@ -704,7 +704,7 @@ class DataPreparationForML:
         
         # First pass dropping all missing values:
         ml_dataset_filtered = (ml_dataset.query('year >= 2010')
-                                        .query('year <= 2019')
+                                        .query('year <= ' + str(year_end))
                                         .sample(frac=1) # Random shuffle
                                         .reset_index(drop=True) # Remove index
                                         )
