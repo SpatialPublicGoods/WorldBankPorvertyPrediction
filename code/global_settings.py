@@ -1,3 +1,5 @@
+import os
+import socket
 import matplotlib.pyplot as plt
 from cycler import cycler
 
@@ -90,5 +92,18 @@ class global_settings:
         plt.rc("lines", linewidth=2.5, markersize=10, markeredgewidth=2.5)
 
 
+    def get_data_path(self):
+        # Get the computer's network name
+        hostname = socket.gethostname()
+        
+        # Define data paths for different hostnames
+        if hostname == 'DESKTOP-PF6QSJO':  # Replace with your actual computer name
+            data_path = 'J:/My Drive/PovertyPredictionRealTime/data'
+        else:
+            data_path = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
+        # Check if the data path exists
+        if not os.path.exists(data_path):
+            raise Exception(f"Data path does not exist: {data_path}")
 
+        return data_path

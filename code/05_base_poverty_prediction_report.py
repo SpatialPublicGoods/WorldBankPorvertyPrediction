@@ -27,15 +27,14 @@ from global_settings import global_settings
 #%% Get current working directory and parameters:
 
 # Parameters
-dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
-
-dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-02-27' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-03-15' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
+
+dataPath = settings.get_data_path()
 
 #--------------
 
@@ -64,28 +63,39 @@ ml_dataset = dpml.input_missing_values(ml_dataset)
 
 # 2. Obtain filtered dataset:
 
-year_end = 2020
+year_end = 2021
 
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset).query('year<=2016')
 
 ml_dataset_filtered_validation = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2020')
+                                        .query('year <= ' + str(year_end))
                                         .query('true_year==2016') # Keep only observations that correspond to 2016 data
                                     )
 
 ml_dataset_filtered_true = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
                                         .query('year >= 2017')
-                                        .query('year <= 2020')
+                                        .query('year <= ' + str(year_end))
                                         .query('true_year != 2016') # Keep only observations that correspond to 2016 data
                                     )
 
-growth_rate = {2017: 1.04, 
-                2018: 1.04 * 1.025, 
-                2019: 1.04 * 1.025 * 1.04,
-                2020: 1.04 * 1.025 * 1.04 * .9
+g_2016 = 2.4
+g_2017 =	0.7
+g_2018 =	2.0
+g_2019 =	0.4
+g_2020 =	-12.2
+g_2021 =	12.0
+
+growth_scale = lambda x: 1 + x/100
+
+
+growth_rate = {2017: growth_scale(g_2017), 
+                2018: growth_scale(g_2017) * growth_scale(g_2018), 
+                2019: growth_scale(g_2017) * growth_scale(g_2018)  * growth_scale(g_2019),
+                2020: growth_scale(g_2017) * growth_scale(g_2018)  * growth_scale(g_2019) * growth_scale(g_2020),
+                2021: growth_scale(g_2017) * growth_scale(g_2018)  * growth_scale(g_2019) * growth_scale(g_2020) * growth_scale(g_2021)
                 }
 
 
@@ -222,11 +232,11 @@ porverty_comparison_diff.iloc[:,:] = (np.array(porverty_comparison_test) - np.ar
 plt.clf()
 ax = porverty_comparison_diff.plot.bar(figsize=(10, 6), width=0.8)
 ax.set_xlabel('Poverty Threshold')
-ax.set_ylabel('Difference %')
+ax.set_ylabel('Difference: True - Predicted')
 ax.set_title('Poverty Comparison by Year')
 ax.set_xticklabels(porverty_comparison_diff.index, rotation=45)
 plt.legend(title='Year',  loc='upper right')
-plt.ylim([-.2, .5])
+plt.ylim([-.8, .8])
 plt.tight_layout()
 plt.savefig('../figures/baseline_report/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
@@ -257,35 +267,38 @@ porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','ubigeo_
 porverty_comparison_region = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
 
 
-plt.clf()
 
-n_rows = 5
-n_cols = 5
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
+for yy in range(2017, year_end+1):
+  
+  plt.clf()
 
-# Loop over each ubigeo_region
-for i, (region, data) in enumerate(porverty_comparison_region.query('year == 2017').iterrows()):
-    #
-    data = data.reset_index()
-    data.columns = ['index', 'PovertyRate']
-    data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
-    data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
-    #
-    ax = axes[i // n_cols, i % n_cols]
-    data.plot(kind='bar', ax=ax)
-    ax.set_title(region)
-    ax.set_ylabel('Rate')
-    ax.set_xlabel('Poverty Line')
-    ax.set_ylim(0, .8)
-    plt.xticks(rotation=90)
+  n_rows = 5
+  n_cols = 5
+  fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
 
-# Hide unused subplots
-for j in range(i + 1, n_rows * n_cols):
-    axes[j // n_cols, j % n_cols].axis('off')
+  # Loop over each ubigeo_region
+  for i, (region, data) in enumerate(porverty_comparison_region.query('year == ' + str(yy)).iterrows()):
+      #
+      data = data.reset_index()
+      data.columns = ['index', 'PovertyRate']
+      data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
+      data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
+      #
+      ax = axes[i // n_cols, i % n_cols]
+      data.plot(kind='bar', ax=ax)
+      ax.set_title(region)
+      ax.set_ylabel('Rate')
+      ax.set_xlabel('Poverty Line')
+      ax.set_ylim(0, .8)
+      plt.xticks(rotation=90)
 
-plt.savefig('../figures/baseline_report/fig4_prediction_vs_true_poverty_rate_regions.pdf', bbox_inches='tight')
+  # Hide unused subplots
+  for j in range(i + 1, n_rows * n_cols):
+      axes[j // n_cols, j % n_cols].axis('off')
 
-print('Figure 4 saved')
+  plt.savefig('../figures/baseline_report/fig4_prediction_vs_true_poverty_rate_regions' + str(yy) + '.pdf', bbox_inches='tight')
+
+  print('Figure 4 saved')
 
 
 

@@ -24,33 +24,16 @@ from joblib import Parallel, delayed
 from global_settings import global_settings
 
 
-def get_data_path():
-    # Get the computer's network name
-    hostname = socket.gethostname()
-    
-    # Define data paths for different hostnames
-    if hostname == 'DESKTOP-PF6QSJO':  # Replace with your actual computer name
-        data_path = 'J:/My Drive/PovertyPredictionRealTime/data'
-    else:
-        data_path = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
-
-    # Check if the data path exists
-    if not os.path.exists(data_path):
-        raise Exception(f"Data path does not exist: {data_path}")
-
-    return data_path
-
-
 #%% Get current working directory and parameters:
 
 # Parameters
-dataPath = get_data_path()
-
 freq = 'm'
 
-date = '2024-03-14' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-03-15' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
+
+dataPath = settings.get_data_path()
 
 #--------------
 
@@ -78,7 +61,7 @@ ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
 ml_dataset = dpml.input_missing_values(ml_dataset)
 
 
-def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_col):
+def add_random_shocks_by_region(ml_df, ml_df_train, error_col, region_col, shock_col, ubigeo_col):
     """
     Add a column of random shocks stratified by region to the DataFrame.
     Parameters:
@@ -96,14 +79,21 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
     df[region_col] = df[ubigeo_col].str[:4]
     # Initialize the random shock column with NaNs
     df[shock_col] = np.nan
+
+    # Do the same for the train data so we can back out the std dev of predicted income in the region
+    df_train = ml_df_train.query('year == 2016').copy()
+    df_train[region_col] = df_train[ubigeo_col].str[:4]
+    df_train[shock_col] = np.nan
+
     # Now, for each unique region, calculate the random shocks
     for region in df[region_col].unique():
         # Filter to get the predicted income for the region
         predicted_error_region = df.loc[df[region_col] == region, error_col]
+        predicted_error_train_region_std = df_train.loc[df_train[region_col] == region, error_col].std()
         # Calculate the random shock for this region
         region_shock = np.random.normal(
             loc=0,
-            scale=predicted_error_region.std() ,  # scale based on the std dev of predicted income in the region
+            scale=predicted_error_train_region_std ,  # scale based on the std dev of predicted income in the region
             size=predicted_error_region.shape[0]
         )
         # Assign the calculated shocks back to the main DataFrame
@@ -116,36 +106,21 @@ def add_random_shocks_by_region(ml_df, error_col, region_col, shock_col, ubigeo_
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
-year_end = 2020
+year_end = 2021
 
-<<<<<<< HEAD
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<=2016')
 
 ml_dataset_filtered_validation = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
                                         .query('year <= ' + str(year_end))
-=======
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end =year_end).query('year<=2016')
-
-ml_dataset_filtered_validation = (
-                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
-                                        .query('year >= 2017')
-                                        .query('year <= 2020')
->>>>>>> 3de996e4d670462f1d2002f09325e8ca99502037
                                         .query('true_year==2016') # Keep only observations that correspond to 2016 data
                                     )
 
 ml_dataset_filtered_true = (
-<<<<<<< HEAD
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
                                         .query('year >= 2017')
                                         .query('year <= ' + str(year_end))
-=======
-                                    dpml.filter_ml_dataset(ml_dataset, year_end = year_end)
-                                        .query('year >= 2017')
-                                        .query('year <= 2020')
->>>>>>> 3de996e4d670462f1d2002f09325e8ca99502037
                                         .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
                                     )
 
@@ -188,6 +163,7 @@ error_std = (ml_dataset_filtered_train['predicted_error']).std()
 
 random_shock_train = np.array(add_random_shocks_by_region(
                                     ml_df=ml_dataset_filtered_train, 
+                                    ml_df_train=ml_dataset_filtered_train,
                                     error_col='predicted_error', 
                                     region_col='region', 
                                     shock_col='random_shock', 
@@ -212,6 +188,7 @@ error_std = (ml_dataset_filtered_validation['predicted_error']).std()
 # Add random shocks:
 random_shock_validation = np.array(add_random_shocks_by_region(
                                     ml_df=ml_dataset_filtered_validation, 
+                                    ml_df_train=ml_dataset_filtered_train,
                                     error_col='predicted_error', 
                                     region_col='region', 
                                     shock_col='random_shock', 
@@ -237,7 +214,7 @@ month_to_quarter = {1:1, 2:1, 3:1,
 
 df['quarter'] = df['month'].map(month_to_quarter)
 
-df['n_people'] = 1
+df['n_people'] = df['mieperho'] * df['pondera_i']
 
 #%% Plot with standard deviation:
 
@@ -440,18 +417,18 @@ ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation
 porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','poor_685','poor_365','poor_215']].groupby('year').sum()
 porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('year').sum()
 porverty_comparison_diff = porverty_comparison_test.copy()
-porverty_comparison_diff.iloc[:,:] = (np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)) / np.array(porverty_comparison_test)
+porverty_comparison_diff.iloc[:,:] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
 
 
 # Plotting
 plt.clf()
 ax = porverty_comparison_diff.plot.bar(figsize=(10, 6), width=0.8)
 ax.set_xlabel('Poverty Threshold')
-ax.set_ylabel('Difference %')
+ax.set_ylabel('Difference: True - Predicted')
 ax.set_title('Poverty Comparison by Year')
 ax.set_xticklabels(porverty_comparison_diff.index, rotation=45)
 plt.legend(title='Year',  loc='upper right')
-plt.ylim([-.2, .5])
+plt.ylim([-.8, .8])
 plt.tight_layout()
 plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 

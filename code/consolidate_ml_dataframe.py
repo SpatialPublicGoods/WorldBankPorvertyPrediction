@@ -337,7 +337,7 @@ class DataPreparationForML:
 
         enaho_df_list = []
 
-        for yy in range(year_base + 1, year_end):
+        for yy in range(year_base + 1, year_end + 1):
             enaho_yy = enaho.query('year==' + str(year_base)).copy().reset_index(drop=True)
             enaho_yy['true_year'] = enaho_yy['year']
             enaho_yy['year'] = yy
