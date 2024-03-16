@@ -10,9 +10,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from joblib import load
 
-#--------------
-# Paths
-#--------------
 
 
 class DataPreparationForML:
@@ -162,6 +159,13 @@ class DataPreparationForML:
                                     self.indepvar_nightlights +
                                     []
                                     )        # self.indepvars_geodata = []
+        
+        
+        self.month_to_quarter = {1:1, 2:1, 3:1, 
+                                    4:4, 5:4, 6:4, 
+                                    7:7, 8:7, 9:7, 
+                                    10:10, 11:10, 12:10}
+
 
 
     def obtain_ccpp_level_lags(self, enaho):

@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from datetime import datetime
-from consolidate_ml_dataframe import DataPreparationForML
 from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
@@ -21,8 +20,12 @@ from sklearn.base import clone
 from sklearn.linear_model import Lasso
 import numpy as np
 from joblib import Parallel, delayed
-from global_settings import global_settings
 
+# Import custom classes
+from global_settings import global_settings
+from consolidate_ml_dataframe import DataPreparationForML
+from post_estimation_ml_routines import PostEstimationRoutines
+from generate_figures_for_report import GenerateFiguresReport
 
 #%% Get current working directory and parameters:
 
@@ -39,6 +42,12 @@ dataPath = settings.get_data_path()
 
 dpml = DataPreparationForML(freq=freq, dataPath=dataPath, date=date)
 
+postEstimation = PostEstimationRoutines()
+
+figuresReport = GenerateFiguresReport()
+
+
+#%%
 # 1. Read dataset:
 #------------------
 
@@ -48,129 +57,7 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     .reset_index(drop=False)
                     )
 
-ml_dataset['urbano'] = ml_dataset['strata'].isin([1,2,3,4,5]).astype(int)
-
-ml_dataset['trend'] = ml_dataset['year'].astype(int) - 2011
-
-ml_dataset['ubigeo_region'] = ml_dataset['ubigeo'].str[:4]
-
-ml_dataset['ubigeo_provincia'] = ml_dataset['ubigeo'].str[:6]
-
-ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
-
-ml_dataset = dpml.input_missing_values(ml_dataset)
-
-
-def add_random_shocks_by_region(ml_df, ml_df_train, error_col, region_col, shock_col, ubigeo_col):
-    """
-    Add a column of random shocks stratified by region to the DataFrame.
-    Parameters:
-    ml_df (DataFrame): The input DataFrame.
-    income_col (str): The name of the column with predicted income values.
-    region_col (str): The name of the column to store the region codes.
-    shock_col (str): The name of the new column to store the random shocks.
-    ubigeo_col (str): The name of the column containing ubigeo codes.
-    Returns:
-    DataFrame: The input DataFrame with the added column of random shocks.
-    """
-    # Copy the DataFrame to avoid modifying the original one
-    df = ml_df.copy()
-    # Extract region from ubigeo and create a new column for region
-    df[region_col] = df[ubigeo_col].str[:4]
-    # Initialize the random shock column with NaNs
-    df[shock_col] = np.nan
-
-    # Do the same for the train data so we can back out the std dev of predicted income in the region
-    df_train = ml_df_train.query('year == 2016').copy()
-    df_train[region_col] = df_train[ubigeo_col].str[:4]
-    df_train[shock_col] = np.nan
-
-    # Now, for each unique region, calculate the random shocks
-    for region in df[region_col].unique():
-        # Filter to get the predicted income for the region
-        predicted_error_region = df.loc[df[region_col] == region, error_col]
-        predicted_error_train_region_std = df_train.loc[df_train[region_col] == region, error_col].std()
-        # Calculate the random shock for this region
-        region_shock = np.random.normal(
-            loc=0,
-            scale=predicted_error_train_region_std ,  # scale based on the std dev of predicted income in the region
-            size=predicted_error_region.shape[0]
-        )
-        # Assign the calculated shocks back to the main DataFrame
-        df.loc[df[region_col] == region, shock_col] = region_shock
-    return df
-
-
-def group_variables_for_time_series(grouping_variables, df, frequency='yearly'):
-
-    df = df.copy()
-
-    household_weight = df['n_people']/df.groupby(grouping_variables)['n_people'].transform('sum')
-
-    df['income_pc_weighted'] = df['income_pc'] * household_weight 
-    df['income_pc_hat_weighted'] = df['income_pc_hat'] * household_weight 
-
-    income_series = (df.groupby(grouping_variables)
-                                .agg({
-                                    'income_pc_weighted': 'sum', 
-                                    'income_pc_hat_weighted': 'sum',
-                                    'n_people': 'count'
-                                    })
-                                .reset_index()
-                                )
-
-    income_series['std_mean'] = income_series['income_pc_weighted']/np.sqrt(income_series['n_people'])
-    income_series['std_hat_mean'] = income_series['income_pc_hat_weighted']/np.sqrt(income_series['n_people'])
-
-    # Convert 'year' and 'month' to a datetime
-
-    if frequency == 'yearly':
-        income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
-    elif frequency == 'quarterly':
-        income_series['date'] = pd.to_datetime(income_series.rename(columns={'quarter':'month'})[['year','month']].assign(DAY=1))
-
-    return income_series
-
-
-def group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly'):
-
-    df = df.copy()
-
-    household_weight = df['n_people']/df.groupby(grouping_variables)['n_people'].transform('sum')
-    
-    df['poor_685'] = (df['income_pc'] <= df['lp_685usd_ppp']) * household_weight
-    df['poor_365'] = (df['income_pc'] <= df['lp_365usd_ppp']) * household_weight
-    df['poor_215'] = (df['income_pc'] <= df['lp_215usd_ppp']) * household_weight
-    df['poor_hat_685'] = (df['income_pc_hat'] <= df['lp_685usd_ppp']) * household_weight
-    df['poor_hat_365'] = (df['income_pc_hat'] <= df['lp_365usd_ppp']) * household_weight
-    df['poor_hat_215'] = (df['income_pc_hat'] <= df['lp_215usd_ppp']) * household_weight
-
-    income_series = (df.groupby(grouping_variables)
-                                .agg({
-                                    'poor_685': 'sum', 
-                                    'poor_365': 'sum',
-                                    'poor_215': 'sum',
-                                    'poor_hat_685': 'sum', 
-                                    'poor_hat_365': 'sum',
-                                    'poor_hat_215': 'sum',
-                                    'n_people': 'count'
-                                    })
-                                .reset_index()
-                                )
-    income_series['std_685_mean'] = np.sqrt(income_series['poor_685']*(1-income_series['poor_685']))/np.sqrt(income_series['n_people'])
-    income_series['std_365_mean'] = np.sqrt(income_series['poor_365']*(1-income_series['poor_365']))/np.sqrt(income_series['n_people'])
-    income_series['std_215_mean'] = np.sqrt(income_series['poor_215']*(1-income_series['poor_215']))/np.sqrt(income_series['n_people'])
-    # Convert 'year' and 'month' to a datetime
-
-    if frequency == 'yearly':
-        income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
-    elif frequency == 'quarterly':
-        income_series['date'] = pd.to_datetime(income_series.rename(columns={'quarter':'month'})[['year','month']].assign(DAY=1))
-
-    return income_series
-
-
-
+ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_dataset)
 #--------------------------------------------------------------------------
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
@@ -201,87 +88,46 @@ Y_standardized_validation, X_standardized_validation, scaler_X_validation, scale
 # 3. Load best model:
 #--------------------------------------------------------------------------
 
-best_model_lasso = dpml.load_ml_model(model_filename = 'best_weighted_lasso_model.joblib')
+best_model_lasso = postEstimation.load_ml_model(model_filename = 'best_weighted_lasso_model.joblib')
 
-best_model_gb = dpml.load_ml_model(model_filename = 'best_weighted_gb_model.joblib')
+best_model_gb = postEstimation.load_ml_model(model_filename = 'best_weighted_gb_model.joblib')
 
 #--------------------------------------------------------------------------
 # 4. Keep variables used in Gradient Boosting model:
 #--------------------------------------------------------------------------
 
+
 # Train:
-X_standardized_train =  X_standardized_train[X_standardized_train.columns[best_model_lasso.coef_ !=0]]
-X_standardized_train['const'] = 1
+X_standardized_train =  postEstimation.get_variables_for_gb_model(best_model_lasso, X_standardized_train)
 
 # Validation:
-X_standardized_validation =  X_standardized_validation[X_standardized_validation.columns[best_model_lasso.coef_ !=0]]
-X_standardized_validation['const'] = 1
+X_standardized_validation =  postEstimation.get_variables_for_gb_model(best_model_lasso, X_standardized_validation)
 
 #--------------------------------------------------------------------------
 # 5. Predict income
 #--------------------------------------------------------------------------
 
-# Train:
-#-------
-predicted_income = best_model_gb.predict(X_standardized_train)
-ml_dataset_filtered_train['predicted_income'] = best_model_gb.predict(X_standardized_train) * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
-ml_dataset_filtered_train['true_income'] = np.array(Y_standardized_train)* scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
-ml_dataset_filtered_train['predicted_error'] = ml_dataset_filtered_train['predicted_income'] - ml_dataset_filtered_train['true_income']
+# Get Y hat:
+ml_dataset_filtered_train = postEstimation.add_predicted_income_to_dataframe(ml_dataset_filtered_train, X_standardized_train, Y_standardized_train, scaler_Y_train, best_model_gb)
 
-error_std = (ml_dataset_filtered_train['predicted_error']).std()
+ml_dataset_filtered_validation = postEstimation.add_predicted_income_to_dataframe(ml_dataset_filtered_validation, X_standardized_validation, Y_standardized_validation, scaler_Y_train, best_model_gb)
 
-random_shock_train = np.array(add_random_shocks_by_region(
-                                    ml_df=ml_dataset_filtered_train, 
-                                    ml_df_train=ml_dataset_filtered_train,
-                                    error_col='predicted_error', 
-                                    region_col='region', 
-                                    shock_col='random_shock', 
-                                    ubigeo_col='ubigeo'
-                                    ).random_shock
-                                    )
+# Add shocks and compute income:
+ml_dataset_filtered_train = postEstimation.add_shocks_and_compute_income(ml_dataset_filtered_train, 
+                                                            ml_dataset_filtered_train)
 
-ml_dataset_filtered_train['log_income_pc_hat'] = (predicted_income * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) + random_shock_train
-ml_dataset_filtered_train['income_pc_hat'] = np.exp(ml_dataset_filtered_train['log_income_pc_hat']  ) 
-
-
-
-# Validation:
-#------------
-predicted_income_validation = best_model_gb.predict(X_standardized_validation)
-ml_dataset_filtered_validation['predicted_income'] = best_model_gb.predict(X_standardized_validation)* scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
-ml_dataset_filtered_validation['true_income'] = np.array(Y_standardized_validation)* scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]
-ml_dataset_filtered_validation['predicted_error'] = ml_dataset_filtered_validation['predicted_income'] - ml_dataset_filtered_validation['true_income']
-
-error_std = (ml_dataset_filtered_validation['predicted_error']).std()
-
-# Add random shocks:
-random_shock_validation = np.array(add_random_shocks_by_region(
-                                    ml_df=ml_dataset_filtered_validation, 
-                                    ml_df_train=ml_dataset_filtered_train,
-                                    error_col='predicted_error', 
-                                    region_col='region', 
-                                    shock_col='random_shock', 
-                                    ubigeo_col='ubigeo'
-                                    ).random_shock
-                                    )
-
-ml_dataset_filtered_validation['log_income_pc_hat'] = (predicted_income_validation * scaler_Y_train.scale_[0] + scaler_Y_train.mean_[0]) + random_shock_validation
-ml_dataset_filtered_validation['income_pc_hat'] = np.exp(ml_dataset_filtered_validation['log_income_pc_hat']  ) 
-
+ml_dataset_filtered_validation = postEstimation.add_shocks_and_compute_income(ml_dataset_filtered_validation, 
+                                                            ml_dataset_filtered_train, 
+                                                            )
 
 #--------------------------------------------------------------------------
 # 5. Compiling both datasets and creating some variables:
 #--------------------------------------------------------------------------
 
-month_to_quarter = {1:1, 2:1, 3:1, 
-                    4:4, 5:4, 6:4, 
-                    7:7, 8:7, 9:7, 
-                    10:10, 11:10, 12:10}
-
 # Concatenate both datasets (train and validation):
 df = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation], axis=0)
 
-df['quarter'] = df['month'].map(month_to_quarter)
+df['quarter'] = df['month'].map(dpml.month_to_quarter)
 
 df['n_people'] = df['mieperho'] * df['pondera_i']
 
@@ -289,7 +135,7 @@ df['n_people'] = df['mieperho'] * df['pondera_i']
 # Concatenate both datasets (train and true data):
 df_true = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_true], axis=0)
 
-df_true['quarter'] = df_true['month'].map(month_to_quarter)
+df_true['quarter'] = df_true['month'].map(dpml.month_to_quarter)
 
 df_true['n_people'] = df_true['mieperho'] * df_true['pondera_i']
 
@@ -305,55 +151,10 @@ plt.savefig('../figures/std_trend.pdf', bbox_inches='tight')
 #%% Figure 0 (Binned scatterplot:)
 #----------------------------------------------------------------
 
-def create_binned_scatterplot(df, income_col, predicted_col, bin_width=0.1, bin_start=0, bin_end=1):
-    # Define the bins based on specified parameters
-    bins = np.arange(bin_start, bin_end + bin_width, bin_width)
-    # Categorize the log income data into bins
-    df['income_bin'] = pd.cut(df[income_col], bins=bins, labels=[f"{round(b, 2)}-{round(b+bin_width, 2)}" for b in bins[:-1]])
-    # Calculate the mean of the predicted log income for each bin
-    binned_data = df.groupby('income_bin')[predicted_col].mean().reset_index()
-    binned_data['income_bin'] = binned_data['income_bin'].str.split('-').str[-1].astype(float)
-    binned_data = binned_data.dropna()
-    # Plotting
-    fig, ax1 = plt.subplots(figsize=(10, 7))
-    # Histogram
-    sns.histplot(df[income_col], 
-                color=settings.color6, 
-                linewidths=2,
-                label='True Income', 
-                stat='density',
-                element='step',
-                alpha=0.2,
-                ax=ax1
-                )
-    ax1.set_ylabel('Density')
-    # Poverty lines:
-    ax1.axvline(x=np.log(208.35417), color='gray', linestyle='--', linewidth=1)
-    ax1.axvline(x=np.log(111.020836), color='gray', linestyle='--', linewidth=1)
-    ax1.axvline(x=np.log(65.395836), color='gray', linestyle='--', linewidth=1)
-    # Binned scatterplot
-    ax2 = ax1.twinx()
-    ax2.scatter(binned_data['income_bin'], 
-                binned_data[predicted_col], 
-                alpha=0.8, 
-                color=settings.color1,
-                zorder=5 , # Ensure scatterplot is on top
-                s=150
-                )
-    ax2.set_ylabel('Average Predicted Log Income', color=settings.color1)
-    ax2.tick_params(axis='y', labelcolor=settings.color1)
-    ax2.set_xticks(binned_data['income_bin'])
-    ax1.set_xticklabels([f"{round(b, 1)}" for b in binned_data['income_bin']], rotation=90, fontsize='small')
-    # fig.suptitle('Binned Scatterplot of Predicted Log Income')
-    fig.tight_layout()  # Adjust layout to not overlap
-    plt.xlim([2 , 9.9])
-    fig.savefig('../figures/fig0_binned_scatterplot.pdf', bbox_inches='tight')
-    return print('Figure 0 saved')
-
 # Run scatter plot with distribution for prediction year (default = 2016)
-df_pred_year = ml_dataset_filtered_train.query('year == 2016').copy()
+df_pred_year = ml_dataset_filtered_train.query('year >= 2013').query('year <= 2016').copy()
 
-create_binned_scatterplot(
+figuresReport.create_binned_scatterplot(
     df=df_pred_year.copy(), 
     income_col='log_income_pc', 
     predicted_col='log_income_pc_hat', 
@@ -823,8 +624,8 @@ df.loc[df['year'] <= 2016, 'income_pc_hat'] = df.loc[df['year'] <= 2016, 'income
 
 grouping_variables = ['year']
 
-income_series_pred = group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='yearly')
-income_series_true = group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='yearly')
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='yearly')
 
 # Plotting:
 plt.clf()
@@ -853,8 +654,8 @@ print('Figure 5 saved')
 
 grouping_variables = ['year','urbano']
 
-income_series_pred = group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='yearly')
-income_series_true = group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='yearly')
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='yearly')
 
 # Income series for urban areas both true and predicted
 income_series_true_urban = income_series_true.query('urbano==1')
@@ -892,8 +693,8 @@ print('Figure 6 saved')
 
 grouping_variables = ['year','quarter']
 
-income_series_pred = group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='quarterly')
-income_series_true = group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='quarterly')
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='quarterly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='quarterly')
 
 # Plotting:
 plt.clf()
@@ -920,8 +721,8 @@ print('Figure 7 saved')
 
 grouping_variables = ['year']
 
-income_series_pred = group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
-income_series_true = group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
 
 # Plotting:
 plt.clf()
@@ -955,8 +756,8 @@ print('Figure 8 saved')
 
 grouping_variables = ['year', 'urbano']
 
-income_series_pred = group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
-income_series_true = group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
 
 # Split between urbano and rural:
 income_series_pred_urban = income_series_pred.query('urbano==1')
@@ -1026,8 +827,8 @@ print('Figure 8b saved')
 
 grouping_variables = ['year']
 
-income_series_pred = group_porverty_rate_for_time_series(grouping_variables, df.query('lima_metropolitana==1'), frequency='yearly')
-income_series_true = group_porverty_rate_for_time_series(grouping_variables, df_true.query('lima_metropolitana==1'), frequency='yearly')
+income_series_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df.query('lima_metropolitana==1'), frequency='yearly')
+income_series_true = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df_true.query('lima_metropolitana==1'), frequency='yearly')
 
 
 # Plotting:
@@ -1063,8 +864,8 @@ print('Figure 8c saved')
 
 grouping_variables = ['year', 'hombre']
 
-income_series_pred = group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
-income_series_true = group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
 
 # Split between urbano and rural:
 income_series_pred_male = income_series_pred.query("hombre== 'Male' ")
@@ -1135,8 +936,8 @@ print('Figure 8b saved')
 
 grouping_variables = ['year', 'categ_lab']
 
-income_series_pred = group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
-income_series_true = group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_porverty_rate_for_time_series(grouping_variables, df_true, frequency='yearly')
 
 # Split between urbano and rural:
 income_series_pred_informal = income_series_pred.query("categ_lab== 'Informal' ")
