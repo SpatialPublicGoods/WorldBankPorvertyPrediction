@@ -20,6 +20,21 @@ class PostEstimationRoutines(DataPreparationForML):
         # Inherit from the parent class
         super().__init__()
 
+        self.g_2016 = 2.4
+        self.g_2017 =	0.7
+        self.g_2018 =	2.0
+        self.g_2019 =	0.4
+        self.g_2020 =	-12.2
+        self.g_2021 =	12.0
+        self.growth_scale = lambda x: 1 + x/100
+
+        self.growth_rate = {2017: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017]])[-1], 
+                            2018: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018]])[-1], 
+                            2019: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019]])[-1],
+                            2020: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019, self.g_2020]])[-1],
+                            2021: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019, self.g_2020, self.g_2021]])[-1]
+                            }
+
 
     def get_variables_for_gb_model(self, lasso_model, X):
 
@@ -31,7 +46,7 @@ class PostEstimationRoutines(DataPreparationForML):
         Returns:
             X: The input DataFrame with the selected features.
         """
-        
+
         X = X[X.columns[lasso_model.coef_ !=0]]
         X['const'] = 1
 
@@ -252,6 +267,22 @@ class PostEstimationRoutines(DataPreparationForML):
         # Add predicted income to the DataFrame:
         ml_dataset['log_income_pc_hat'] = ml_dataset['predicted_income'] + random_shock_validation
         ml_dataset['income_pc_hat'] = np.exp(ml_dataset['log_income_pc_hat']  ) 
+
+        return ml_dataset
+    
+
+    
+    def compute_predicted_income_world_bank(self, ml_dataset):
+
+        """
+        This function adds predicted income to the DataFrame according to WB.
+        Parameters:
+            ml_dataset (DataFrame): The input DataFrame.
+        Returns:
+            DataFrame: The input DataFrame with the added predicted income.
+        """
+
+        ml_dataset['income_pc_hat'] = ml_dataset['income_pc'] * ml_dataset['year'].map(self.growth_rate)
 
         return ml_dataset
 

@@ -100,9 +100,16 @@ growth_rate = {2017: growth_scale(g_2017),
 
 
 # 5. Predict income
+
 ml_dataset_filtered_train['income_pc_hat'] = ml_dataset_filtered_train['income_pc']
 
-ml_dataset_filtered_validation['income_pc_hat'] = ml_dataset_filtered_validation['income_pc'] * ml_dataset_filtered_validation['year'].map(growth_rate)
+def compute_predicted_income_world_bank(data):
+
+    data['income_pc_hat'] = data['income_pc'] * data['year'].map(growth_rate)
+
+    return data
+
+ml_dataset_filtered_validation = compute_predicted_income_world_bank(ml_dataset_filtered_validation)
 
 
 # 5. Compiling both datasets and creating some variables:
