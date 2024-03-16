@@ -73,6 +73,24 @@ class PostEstimationRoutines(DataPreparationForML):
 
         ml_dataset['lima_metropolitana'] = ml_dataset['ubigeo_provincia'] == 'U-1501'
 
+        # Get Education cateogorical variable:
+        ml_dataset['educ'] = np.nan
+        ml_dataset['neduc'] = 1 - (ml_dataset['prii'] + ml_dataset['seci'] + ml_dataset['secc'] + ml_dataset['supi'] + ml_dataset['supc'])
+        ml_dataset.loc[ml_dataset['neduc'] == 1, 'educ'] = 'No Education'
+        ml_dataset.loc[ml_dataset['prii'] == 1, 'educ'] = 'Elementary'
+        ml_dataset.loc[ml_dataset['seci'] == 1, 'educ'] = 'Elementary'
+        ml_dataset.loc[ml_dataset['secc'] == 1, 'educ'] = 'Elementary'
+        ml_dataset.loc[ml_dataset['supi'] == 1, 'educ'] = 'Superior'
+        ml_dataset.loc[ml_dataset['supc'] == 1, 'educ'] = 'Superior'
+
+        # Get Number of children categorical variable:
+        ml_dataset['n_children'] = np.nan
+        ml_dataset.loc[ml_dataset['nro_hijos'] == 0, 'n_children'] = '0'
+        ml_dataset.loc[ml_dataset['nro_hijos'] == 1, 'n_children'] = '1'
+        ml_dataset.loc[ml_dataset['nro_hijos'] == 2, 'n_children'] = '2'
+        ml_dataset.loc[ml_dataset['nro_hijos'] >= 3, 'n_children'] = '3 more'
+
+
         ml_dataset = self.input_missing_values(ml_dataset)
 
         return ml_dataset
