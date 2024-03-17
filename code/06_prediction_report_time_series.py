@@ -778,7 +778,6 @@ plt.errorbar(income_series_pred_nchild1['date'], income_series_pred_nchild1['poo
 plt.errorbar(income_series_wb_nchild1['date'], income_series_wb_nchild1['poor_hat_685'], yerr=income_series_wb_nchild1['std_685_mean'], 
             label='1 Child Predict (WB)', color=settings.color2, fmt='-.', linestyle=':')  # Adjust linestyle if needed
 
-
 plt.errorbar(income_series_true_nchild2['date'], income_series_true_nchild2['poor_685'], yerr=income_series_true_nchild2['std_685_mean'], 
             label='2 Child', color=settings.color3, fmt='-')
 plt.errorbar(income_series_pred_nchild2['date'], income_series_pred_nchild2['poor_hat_685'], yerr=income_series_pred_nchild2['std_685_mean'], 
