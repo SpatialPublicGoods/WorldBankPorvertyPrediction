@@ -58,6 +58,9 @@ ml_dataset = (dpml.read_consolidated_ml_dataset()
                     )
 
 ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_dataset)
+
+
+
 #--------------------------------------------------------------------------
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
@@ -156,6 +159,12 @@ df_wb = pd.concat([ml_dataset_filtered_train, ml_dataset_filtered_validation_wor
 df_wb['quarter'] = df_wb['month'].map(dpml.month_to_quarter)
 
 df_wb['n_people'] = df_wb['mieperho'] * df_wb['pondera_i']
+
+# Get training data using the true level of income:
+df.loc[df['year'] <= 2016, 'income_pc_hat'] = df.loc[df['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
+
+df_wb.loc[df_wb['year'] <= 2016, 'income_pc_hat'] = df_wb.loc[df_wb['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
+
 
 
 #%% Plot with standard deviation:
@@ -335,56 +344,67 @@ print('Figure 3 saved')
 # Replicate poverty rate (by region)
 #----------------------------------------------------
 
-# True data: (2017-2019)
-ml_dataset_filtered_true['n_people'] = ml_dataset_filtered_true['mieperho'] * ml_dataset_filtered_true['pondera_i']
-household_weight_test = ml_dataset_filtered_true['n_people']/ml_dataset_filtered_true.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
-ml_dataset_filtered_true['poor_685'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_true['poor_365'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_true['poor_215'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_215usd_ppp']) * household_weight_test
+grouping_variables = ['year', 'ubigeo_region']
 
-# Predicted data: (using 2016 data)
-ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
-household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby(['year', 'ubigeo_region'])['n_people'].transform('sum')
-ml_dataset_filtered_validation['poor_hat_685'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_validation['poor_hat_365'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_215usd_ppp']) * household_weight_prediction
+# Get predicted poverty rate by year and region:
+porverty_comparison_region = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_true)
+porverty_comparison_region = porverty_comparison_region.loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(['ubigeo_region','year']).sort_index()
 
-# Get predicted and true poverty rate by year and region:
-porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215']].groupby(['ubigeo_region', 'year']).sum()
-porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','ubigeo_region','poor_hat_685','poor_hat_365','poor_hat_215']].groupby(['ubigeo_region', 'year']).sum()
-porverty_comparison_region = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
+# Get predicted poverty rate by year and region:
+porverty_comparison_region_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df)
+porverty_comparison_region_pred = porverty_comparison_region_pred.loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(['ubigeo_region','year']).sort_index()
+
+# Get predicted and true poverty rate by year and region according to WB:
+porverty_comparison_region_wb = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_wb)
+porverty_comparison_region_wb = porverty_comparison_region_wb.loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(['ubigeo_region','year']).sort_index()
+
+# Get difference between the true and predicted national rate:
+# Predicted GB 
+porverty_comparison_region_diff = (porverty_comparison_region
+                                    .reset_index()
+                                    .loc[:,['year','ubigeo_region','poor_685','poor_365','poor_215']]
+                                    .set_index(['ubigeo_region','year'])
+                                    .copy()
+                                    )
 
 
-plt.clf()
+porverty_comparison_region_diff[['poor_685', 'poor_365',  'poor_215']] = np.array(porverty_comparison_region_pred[['poor_hat_685', 'poor_hat_365',  'poor_hat_215']]) - np.array(porverty_comparison_region[['poor_685','poor_365','poor_215']])
+porverty_comparison_region_diff[['poor_wb_685', 'poor_wb_365',  'poor_wb_215']] = np.array(porverty_comparison_region_wb[['poor_hat_685', 'poor_hat_365',  'poor_hat_215']]) - np.array(porverty_comparison_region[['poor_685','poor_hat_365','poor_215']])
 
-n_rows = 5
-n_cols = 5
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
 
-# Loop over each ubigeo_region
-for i, (region, data) in enumerate(porverty_comparison_region.query('year == 2017').iterrows()):
-    #
-    data = data.reset_index()
-    data.columns = ['index', 'PovertyRate']
-    data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
-    data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
-    #
-    ax = axes[i // n_cols, i % n_cols]
-    data.plot(kind='bar', ax=ax)
-    ax.set_title(region)
-    ax.set_ylabel('Rate')
-    ax.set_xlabel('Poverty Line')
-    ax.set_ylim(0, .8)
-    plt.xticks(rotation=90)
+# Barplot with difference:
 
-# Hide unused subplots
-for j in range(i + 1, n_rows * n_cols):
-    axes[j // n_cols, j % n_cols].axis('off')
+for yy in [2017, 2018, 2019, 2020, 2021]:
 
-plt.savefig('../figures/fig4_prediction_vs_true_poverty_rate_regions.pdf', bbox_inches='tight')
+  plt.clf()
+
+  n_rows = 5
+  n_cols = 5
+  fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 20))
+
+  # Loop over each ubigeo_region
+  for i, (region, data) in enumerate(porverty_comparison_region_diff.query('year == ' + str(yy)).iterrows()):
+
+      data = data.reset_index()
+      data.columns = ['index', 'PovertyRate']
+      data[['Poverty Line', 'Type']] = data['index'].str.rsplit('_', n=1, expand=True)
+      data = data.pivot(index='Poverty Line', columns='Type', values='PovertyRate')
+      #s
+      ax = axes[i // n_cols, i % n_cols]
+      data.plot(kind='bar', ax=ax)
+      ax.set_title(region)
+      ax.set_ylabel('Rate')
+      ax.set_xlabel('Poverty Line')
+      ax.set_ylim(-.8, .8)
+      # plt.xticks(rotation=90)
+
+  # Hide unused subplots
+  for j in range(i + 1, n_rows * n_cols):
+      axes[j // n_cols, j % n_cols].axis('off')
+
+  plt.savefig('../figures/fig4b_prediction_vs_true_poverty_rate_regions_diff_' + str(yy) + '.pdf', bbox_inches='tight')
 
 print('Figure 4 saved')
-
 
 
 
@@ -393,109 +413,107 @@ print('Figure 4 saved')
 # Scatter plot of predicted poverty rate vs true poverty rate
 #--------------------------------------------------------------
 
-# Poverty 685:
+# Gradient boosting:
 #--------------------------------------------------------------
 
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_685'], 
-                  y=porverty_comparison_region.query('year == 2017')['poor_hat_685'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_685'], 
-                  y=porverty_comparison_region.query('year == 2018')['poor_hat_685'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_685'], 
-                  y=porverty_comparison_region.query('year == 2019')['poor_hat_685'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
-sns.lineplot(x=[0,.7], y=[0,.7], color=settings.color4)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p685_scatter.pdf', bbox_inches='tight')
+for pp in ['685', '365', '215']:
+
+  plt.clf()
+  plt.figure(figsize=(10, 10))
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == 2017')['poor_hat_' + pp], 
+                    label='2017', 
+                    color=settings.color1,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == 2018')['poor_hat_' + pp], 
+                    label='2018', 
+                    color=settings.color2,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == 2019')['poor_hat_' + pp], 
+                    label='2019', 
+                    color=settings.color3,
+                    s=150
+                  )
+  
+  max_x_pred = (porverty_comparison_region_pred.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  max_x_wb = (porverty_comparison_region.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  
+  max_x = max(max_x_pred, max_x_wb)
 
 
+  sns.lineplot(x=[0,max_x], y=[0,max_x], color=settings.color4)
+  plt.xlabel('True Poverty Rate')
+  plt.ylabel('Predicted Poverty Rate')
+  plt.legend()
+  plt.grid(True)
+  plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
-# Poverty 365:
+
+# World Bank:
 #--------------------------------------------------------------
 
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_365'], 
-                  y=porverty_comparison_region.query('year == 2017')['poor_hat_365'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_365'], 
-                  y=porverty_comparison_region.query('year == 2018')['poor_hat_365'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_365'], 
-                  y=porverty_comparison_region.query('year == 2019')['poor_hat_365'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
 
-sns.lineplot(x=[0,.31], y=[0,.31], color=settings.color2)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p365_scatter.pdf', bbox_inches='tight')
+for pp in ['685', '365', '215']:
 
-
-# Poverty 215:
-#--------------------------------------------------------------
-
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_215'], 
-                  y=porverty_comparison_region.query('year == 2017')['poor_hat_215'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_215'], 
-                  y=porverty_comparison_region.query('year == 2018')['poor_hat_215'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_215'], 
-                  y=porverty_comparison_region.query('year == 2019')['poor_hat_215'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
-
-sns.lineplot(x=[0,.125], y=[0,.125], color=settings.color2)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p215_scatter.pdf', bbox_inches='tight')
+  plt.clf()
+  plt.figure(figsize=(10, 10))
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == 2017')['poor_hat_' + pp], 
+                    label='2017', 
+                    color=settings.color1,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == 2018')['poor_hat_' + pp], 
+                    label='2018', 
+                    color=settings.color2,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == 2019')['poor_hat_' + pp], 
+                    label='2019', 
+                    color=settings.color3,
+                    s=150
+                  )
+  
+  max_x_pred = (porverty_comparison_region_wb.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  max_x_wb = (porverty_comparison_region.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  
+  max_x = max(max_x_pred, max_x_wb)
 
 
-# get mse for regional comparison:
-porverty_comparison_regional_mse = porverty_comparison_region.reset_index().copy()
-porverty_comparison_regional_mse['sq_error_685'] = (porverty_comparison_regional_mse['poor_685']-porverty_comparison_regional_mse['poor_hat_685'])
-porverty_comparison_regional_mse['sq_error_365'] = (porverty_comparison_regional_mse['poor_365']- porverty_comparison_regional_mse['poor_hat_365'])
-porverty_comparison_regional_mse['sq_error_215'] = (porverty_comparison_regional_mse['poor_215']- porverty_comparison_regional_mse['poor_hat_215'])
-pov_regional_mse = porverty_comparison_regional_mse.groupby('year')[['sq_error_685', 'sq_error_365', 'sq_error_215']].mean()
-pov_regional_mse['type']='regional'
+  sns.lineplot(x=[0,max_x], y=[0,max_x], color=settings.color4)
+  plt.xlabel('True Poverty Rate')
+  plt.ylabel('Predicted Poverty Rate')
+  plt.legend()
+  plt.grid(True)
+  plt.savefig('../figures/fig4_2_prediction_wb_vs_true_poverty_rate_regions_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
+
+
 
 
 
@@ -503,133 +521,123 @@ pov_regional_mse['type']='regional'
 # Replicate poverty rate (by provincia])
 #----------------------------------------------------
 
-# True data: (2017-2019)
-ml_dataset_filtered_true['n_people'] = ml_dataset_filtered_true['mieperho'] * ml_dataset_filtered_true['pondera_i']
-household_weight_test = ml_dataset_filtered_true['n_people']/ml_dataset_filtered_true.groupby(['year', 'ubigeo_provincia'])['n_people'].transform('sum')
-ml_dataset_filtered_true['poor_685'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_685usd_ppp']) * household_weight_test
-ml_dataset_filtered_true['poor_365'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_365usd_ppp']) * household_weight_test
-ml_dataset_filtered_true['poor_215'] = (ml_dataset_filtered_true['income_pc'] <= ml_dataset_filtered_true['lp_215usd_ppp']) * household_weight_test
 
-# Predicted data: (using 2016 data)
-ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mieperho'] * ml_dataset_filtered_validation['pondera_i']
-household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby(['year', 'ubigeo_provincia'])['n_people'].transform('sum')
-ml_dataset_filtered_validation['poor_hat_685'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_685usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_validation['poor_hat_365'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_365usd_ppp']) * household_weight_prediction
-ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation['income_pc_hat'] <= ml_dataset_filtered_validation['lp_215usd_ppp']) * household_weight_prediction
+grouping_variables = ['year', 'ubigeo_provincia']
 
-# Get predicted and true poverty rate by year and region:
-porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215']].groupby(['ubigeo_provincia', 'year']).sum()
-porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','ubigeo_provincia','poor_hat_685','poor_hat_365','poor_hat_215']].groupby(['ubigeo_provincia', 'year']).sum()
-porverty_comparison_provincia = pd.concat([porverty_comparison_test, porverty_comparison_pred], axis=1)
+# Get predicted poverty rate by year and provincia:
+porverty_comparison_provincia = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_true)
+porverty_comparison_provincia = porverty_comparison_provincia.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
+
+# Get predicted poverty rate by year and provincia:
+porverty_comparison_provincia_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df)
+porverty_comparison_provincia_pred = porverty_comparison_provincia_pred.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
+
+# Get predicted and true poverty rate by year and provincia according to WB:
+porverty_comparison_provincia_wb = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_wb)
+porverty_comparison_provincia_wb = porverty_comparison_provincia_wb.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
 
 
 
-# Poverty 685:
+
+# Gradient boosting:
 #--------------------------------------------------------------
 
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_685'], 
-                  y=porverty_comparison_provincia.query('year == 2017')['poor_hat_685'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_685'], 
-                  y=porverty_comparison_provincia.query('year == 2018')['poor_hat_685'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_685'], 
-                  y=porverty_comparison_provincia.query('year == 2019')['poor_hat_685'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
-sns.lineplot(x=[0,1], y=[0,1], color=settings.color4)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_3_prediction_vs_true_poverty_rate_provincia_p685_scatter.pdf', bbox_inches='tight')
+for pp in ['685', '365', '215']:
+
+  plt.clf()
+  plt.figure(figsize=(10, 10))
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year == 2017')['poor_hat_' + pp], 
+                    label='2017', 
+                    color=settings.color1,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year == 2018')['poor_hat_' + pp], 
+                    label='2018', 
+                    color=settings.color2,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year == 2019')['poor_hat_' + pp], 
+                    label='2019', 
+                    color=settings.color3,
+                    s=150
+                  )
+  
+  max_x_pred = (porverty_comparison_provincia_pred.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  max_x_wb = (porverty_comparison_provincia.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  
+  max_x = max(max_x_pred, max_x_wb)
 
 
+  sns.lineplot(x=[0,max_x], y=[0,max_x], color=settings.color4)
+  plt.xlabel('True Poverty Rate')
+  plt.ylabel('Predicted Poverty Rate')
+  plt.legend()
+  plt.grid(True)
+  plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_provincia_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
-# Poverty 365:
+
+# World Bank:
 #--------------------------------------------------------------
 
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_365'], 
-                  y=porverty_comparison_provincia.query('year == 2017')['poor_hat_365'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_365'], 
-                  y=porverty_comparison_provincia.query('year == 2018')['poor_hat_365'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_365'], 
-                  y=porverty_comparison_provincia.query('year == 2019')['poor_hat_365'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
+for pp in ['685', '365', '215']:
 
-sns.lineplot(x=[0,.31], y=[0,.31], color=settings.color2)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_provincia_p365_scatter.pdf', bbox_inches='tight')
-
-
-# Poverty 215:
-#--------------------------------------------------------------
-
-plt.clf()
-plt.figure(figsize=(10, 10))
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_215'], 
-                  y=porverty_comparison_provincia.query('year == 2017')['poor_hat_215'], 
-                  label='2017', 
-                  color=settings.color1,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_215'], 
-                  y=porverty_comparison_provincia.query('year == 2018')['poor_hat_215'], 
-                  label='2018', 
-                  color=settings.color2,
-                  s=150
-                )
-sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_215'], 
-                  y=porverty_comparison_provincia.query('year == 2019')['poor_hat_215'], 
-                  label='2019', 
-                  color=settings.color3,
-                  s=150
-                )
-
-sns.lineplot(x=[0,.125], y=[0,.125], color=settings.color2)
-plt.xlabel('True Poverty Rate')
-plt.ylabel('Predicted Poverty Rate')
-plt.legend()
-plt.grid(True)
-plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_provincia_p215_scatter.pdf', bbox_inches='tight')
+  plt.clf()
+  plt.figure(figsize=(10, 10))
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year == 2017')['poor_hat_' + pp], 
+                    label='2017', 
+                    color=settings.color1,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year == 2018')['poor_hat_' + pp], 
+                    label='2018', 
+                    color=settings.color2,
+                    s=150
+                  )
+  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year == 2019')['poor_hat_' + pp], 
+                    label='2019', 
+                    color=settings.color3,
+                    s=150
+                  )
+  
+  max_x_pred = (porverty_comparison_provincia_wb.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  max_x_wb = (porverty_comparison_provincia.reset_index()
+                                          .query('year >= 2017')
+                                          .query('year <= 2019')
+                                          .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
+                                          .max()
+                                          .max())
+  
+  max_x = max(max_x_pred, max_x_wb)
 
 
-# get mse for provincial comparison:
-porverty_comparison_provincial_mse = porverty_comparison_provincia.reset_index().copy()
-porverty_comparison_provincial_mse['sq_error_685'] = (porverty_comparison_provincial_mse['poor_685']-porverty_comparison_provincial_mse['poor_hat_685'])
-porverty_comparison_provincial_mse['sq_error_365'] = (porverty_comparison_provincial_mse['poor_365']- porverty_comparison_provincial_mse['poor_hat_365'])
-porverty_comparison_provincial_mse['sq_error_215'] = (porverty_comparison_provincial_mse['poor_215']- porverty_comparison_provincial_mse['poor_hat_215'])
-pov_provincial_mse = porverty_comparison_provincial_mse.groupby('year')[['sq_error_685', 'sq_error_365', 'sq_error_215']].mean()
-pov_provincial_mse['type']= 'provincial'
+  sns.lineplot(x=[0,max_x], y=[0,max_x], color=settings.color4)
+  plt.xlabel('True Poverty Rate')
+  plt.ylabel('Predicted Poverty Rate')
+  plt.legend()
+  plt.grid(True)
+  plt.savefig('../figures/fig4_2_prediction_wb_vs_true_poverty_rate_provincia_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
-pov_mse = pd.concat([pov_regional_mse, pov_provincial_mse], axis=0)
 
-pov_mse.to_csv('../tables/table1_pov_mse.csv')
 
 
