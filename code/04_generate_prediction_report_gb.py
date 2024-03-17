@@ -526,17 +526,15 @@ grouping_variables = ['year', 'ubigeo_provincia']
 
 # Get predicted poverty rate by year and provincia:
 porverty_comparison_provincia = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_true)
-porverty_comparison_provincia = porverty_comparison_provincia.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
+porverty_comparison_provincia = porverty_comparison_provincia.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215']].set_index(grouping_variables).sort_index()
 
 # Get predicted poverty rate by year and provincia:
 porverty_comparison_provincia_pred = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df)
-porverty_comparison_provincia_pred = porverty_comparison_provincia_pred.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
+porverty_comparison_provincia_pred = porverty_comparison_provincia_pred.loc[:,['year','ubigeo_provincia','poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
 
 # Get predicted and true poverty rate by year and provincia according to WB:
 porverty_comparison_provincia_wb = postEstimation.group_porverty_rate_for_time_series(grouping_variables,  df_wb)
-porverty_comparison_provincia_wb = porverty_comparison_provincia_wb.loc[:,['year','ubigeo_provincia','poor_685','poor_365','poor_215', 'poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
-
-
+porverty_comparison_provincia_wb = porverty_comparison_provincia_wb.loc[:,['year','ubigeo_provincia','poor_hat_685','poor_hat_365','poor_hat_215']].set_index(grouping_variables).sort_index()
 
 
 # Gradient boosting:
@@ -639,5 +637,97 @@ for pp in ['685', '365', '215']:
   plt.savefig('../figures/fig4_2_prediction_wb_vs_true_poverty_rate_provincia_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
 
+#%% Histogram or density of difference at provincial level:
+  
+# Get difference between the true and predicted national rate:
+# Predicted GB 
+porverty_comparison_provincia_diff = (porverty_comparison_provincia
+                                      .merge(porverty_comparison_provincia_pred, on=['year','ubigeo_provincia'], how='left')
+                                      .merge(porverty_comparison_provincia_wb, on=['year','ubigeo_provincia'], how='left')
+                                      .reset_index()
+                                      .set_index(['ubigeo_provincia','year'])
+                                      .copy()
+                                    )
+
+porverty_comparison_provincia_diff[['diff_685', 'diff_365',  'diff_215']] = np.array(porverty_comparison_provincia_diff[['poor_hat_685_x', 'poor_hat_365_x',  'poor_hat_215_x']]) - np.array(porverty_comparison_provincia_diff[['poor_685','poor_365','poor_215']])
+porverty_comparison_provincia_diff[['diff_wb_685', 'diff_wb_365',  'diff_wb_215']] = np.array(porverty_comparison_provincia_diff[['poor_hat_685_y', 'poor_hat_365_y',  'poor_hat_215_y']]) - np.array(porverty_comparison_provincia_diff[['poor_685','poor_365','poor_215']])
+
+porverty_comparison_provincia_diff = porverty_comparison_provincia_diff.query('year >= 2017')
 
 
+# Plotting difference at provincial level p685:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.histplot(porverty_comparison_provincia_diff['diff_685'], 
+                color=settings.color1, 
+                # kde=True, 
+                label='Gradient Boosting', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+sns.histplot(porverty_comparison_provincia_diff['diff_wb_685'], 
+                color=settings.color2, 
+                # kde=True, 
+                label='World Bank', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+plt.legend()
+plt.xlim(-.6, .6)
+plt.savefig('../figures/fig5a_prediction_vs_wb_diff_distribution_685.pdf', bbox_inches='tight')
+
+# Plotting difference at provincial level p365:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.histplot(porverty_comparison_provincia_diff['diff_365'], 
+                color=settings.color1, 
+                # kde=True, 
+                label='Gradient Boosting', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+sns.histplot(porverty_comparison_provincia_diff['diff_wb_365'], 
+                color=settings.color2, 
+                # kde=True, 
+                label='World Bank', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+plt.legend()
+plt.xlim(-.4, .4)
+plt.savefig('../figures/fig5b_prediction_vs_wb_diff_distribution_365.pdf', bbox_inches='tight')
+
+
+
+# Plotting difference at provincial level p215:
+plt.clf()
+plt.figure(figsize=(10, 10))
+sns.histplot(porverty_comparison_provincia_diff['diff_215'], 
+                color=settings.color1, 
+                # kde=True, 
+                label='Gradient Boosting', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+sns.histplot(porverty_comparison_provincia_diff['diff_wb_215'], 
+                color=settings.color2, 
+                # kde=True, 
+                label='World Bank', 
+                stat='density', 
+                fill=False, 
+                element='step',
+                bins=50
+                )
+plt.legend()
+plt.xlim(-.3, .3)
+plt.savefig('../figures/fig5c_prediction_vs_wb_diff_distribution_215.pdf', bbox_inches='tight')
