@@ -153,7 +153,7 @@ ml_dataset_filtered_validation['poor_hat_215'] = (ml_dataset_filtered_validation
 porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','poor_685','poor_365','poor_215']].groupby('year').sum()
 porverty_comparison_pred = ml_dataset_filtered_validation.loc[:,['year','poor_hat_685','poor_hat_365','poor_hat_215']].groupby('year').sum()
 porverty_comparison_diff = porverty_comparison_test.copy()
-porverty_comparison_diff.iloc[:,:] = (np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)) / np.array(porverty_comparison_test)
+porverty_comparison_diff.iloc[:,:] = (np.array(porverty_comparison_test) - np.array(porverty_comparison_pred))
 
 
 # Plotting
@@ -164,8 +164,10 @@ ax.set_ylabel('Difference: True - Predicted')
 ax.set_title('Poverty Comparison by Year')
 ax.set_xticklabels(porverty_comparison_diff.index, rotation=45)
 plt.legend(title='Year',  loc='upper right')
-plt.ylim([-.8, .8])
+plt.ylim([-.2, .2])
 plt.tight_layout()
+plt.grid(True)
+# plt.show()
 plt.savefig('../figures/baseline_report/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
 print('Figure 3 saved')
