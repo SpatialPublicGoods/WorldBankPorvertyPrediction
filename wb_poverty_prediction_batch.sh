@@ -12,7 +12,7 @@
 
 #SBATCH --partition=standard       # standard (default), long, gpu, mpi, highmem
 #SBATCH --cpus-per-task=10          # number of CPUs requested (for parallel tasks)
-#SBATCH --mem=300G                   # requested memory
+#SBATCH --mem=100G                   # requested memory
 #SBATCH --time=0-05:00:00          # wall clock limit (d-hh:mm:ss)
 
 # We requested 1 CPU, 240GB RAM, and 5 minutes of run time
