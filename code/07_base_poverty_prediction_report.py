@@ -30,7 +30,7 @@ from global_settings import global_settings
 
 freq = 'm'
 
-date = '2024-03-15' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-03-28' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
