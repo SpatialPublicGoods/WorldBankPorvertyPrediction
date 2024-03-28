@@ -86,12 +86,14 @@ class DataPreparationForML:
                                   'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
         self.individual_variables = ['nro_hijos',
-                                        # 'prii',	
-                                        # 'seci',	
-                                        # 'secc',	
-                                        # 'supi',	
-                                        # 'supc',
-                                        'edad'
+                                        'prii',	
+                                        'seci',	
+                                        'secc',	
+                                        'supi',	
+                                        'supc',
+                                        'edad',
+                                        'male',
+                                        'informal'
                                         ]
 
         self.indepvar_precipitation =   [
@@ -241,6 +243,10 @@ class DataPreparationForML:
         enaho_sedlac = pd.read_csv(os.path.join(self.dataPath, 
                                     self.working, 
                                     self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
+        
+        enaho_sedlac['male'] = (enaho_sedlac['hombre'] == 'Male').astype(int)
+
+        enaho_sedlac['informal'] = (enaho_sedlac['categ_lab'] == 'Informal').astype(int)
 
         return enaho_sedlac
 
