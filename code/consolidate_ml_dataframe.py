@@ -124,12 +124,12 @@ class DataPreparationForML:
                                             ]
 
         self.indepvar_nightlights = [
-                                    # 'min_nightlight',
-                                    # 'max_nightlight',
-                                    # 'mean_nightlight',
-                                    # 'stdDev_nightlight',
+                                    'min_nightlight',
+                                    'max_nightlight',
+                                    'mean_nightlight',
+                                    'stdDev_nightlight',
                                     'median_nightlight',
-                                    # 'range_nightlight'
+                                    'range_nightlight'
                                     ]        
 
         self.indepvar_domestic_violence = ['cases_tot']
