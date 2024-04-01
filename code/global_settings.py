@@ -99,6 +99,8 @@ class global_settings:
         # Define data paths for different hostnames
         if hostname == 'DESKTOP-PF6QSJO':  # Replace with your actual computer name
             data_path = 'J:/My Drive/PovertyPredictionRealTime/data'
+        elif hostname == 'DESKTOP-Q5GQULQ':
+            data_path = "L:/.shortcut-targets-by-id/12-fuK40uOBz3FM-OXbZtk_OSlYcGpzpa/PovertyPredictionRealTime/data"
         else:
             data_path = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
