@@ -201,8 +201,8 @@ df3 = income_series_wb_urban[['year', 'poor_hat_685']]
 df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
 
-df_cat1['gb_urban_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x'])
-df_cat1['wb_urban_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y'])
+df_cat1['gb_urban_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x']), 4)
+df_cat1['wb_urban_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y']), 4)
 
 df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
 
@@ -217,8 +217,8 @@ df3 = income_series_wb_rural[['year', 'poor_hat_685']]
 df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
 
-df_cat2['gb_rural_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x'])
-df_cat2['wb_rural_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y'])
+df_cat2['gb_rural_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x']), 4)
+df_cat2['wb_rural_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y']), 4)
 
 df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 
@@ -229,8 +229,8 @@ df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
 
 df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
-df_final['pop_share_urban'] = df_final['n_people_x'] / df_final['t_people']
-df_final['pop_share_rural'] = df_final['n_people_y'] / df_final['t_people']
+df_final['pop_share_urban'] = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_rural'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
 
 df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
 
@@ -285,8 +285,8 @@ df3 = income_series_wb_male[['year', 'poor_hat_685']]
 df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
 
-df_cat1['gb_male_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x'])
-df_cat1['wb_male_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y'])
+df_cat1['gb_male_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x']), 4)
+df_cat1['wb_male_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y']), 4)
 
 df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
 
@@ -301,8 +301,8 @@ df3 = income_series_wb_female[['year', 'poor_hat_685']]
 df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
 
-df_cat2['gb_female_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x'])
-df_cat2['wb_female_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y'])
+df_cat2['gb_female_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x']), 4)
+df_cat2['wb_female_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y']), 4)
 
 df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 
@@ -313,8 +313,8 @@ df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
 
 df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
-df_final['pop_share_male']   = df_final['n_people_x'] / df_final['t_people']
-df_final['pop_share_female'] = df_final['n_people_y'] / df_final['t_people']
+df_final['pop_share_male']   = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_female'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
 
 df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
 
@@ -374,8 +374,8 @@ df3 = income_series_wb_formal[['year', 'poor_hat_685']]
 df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
 
-df_cat1['gb_formal_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x'])
-df_cat1['wb_formal_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y'])
+df_cat1['gb_formal_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x']), 4)
+df_cat1['wb_formal_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y']), 4)
 
 df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
 
@@ -390,8 +390,8 @@ df3 = income_series_wb_informal[['year', 'poor_hat_685']]
 df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
 
-df_cat2['gb_informal_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x'])
-df_cat2['wb_informal_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y'])
+df_cat2['gb_informal_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x']), 4)
+df_cat2['wb_informal_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y']), 4)
 
 df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 
@@ -402,8 +402,8 @@ df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
 
 df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
-df_final['pop_share_formal']   = df_final['n_people_x'] / df_final['t_people']
-df_final['pop_share_informal'] = df_final['n_people_y'] / df_final['t_people']
+df_final['pop_share_formal']   = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_informal'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
 
 df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
 
@@ -463,8 +463,8 @@ df3 = income_series_wb_elementary[['year', 'poor_hat_685']]
 df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
 
-df_cat1['gb_elementary_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x'])
-df_cat1['wb_elementary_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y'])
+df_cat1['gb_elementary_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x']), 4)
+df_cat1['wb_elementary_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y']), 4)
 
 df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
 
@@ -479,8 +479,8 @@ df3 = income_series_wb_superior[['year', 'poor_hat_685']]
 df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
 
-df_cat2['gb_superior_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x'])
-df_cat2['wb_superior_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y'])
+df_cat2['gb_superior_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x']), 4)
+df_cat2['wb_superior_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y']), 4)
 
 df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 
@@ -491,8 +491,8 @@ df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
 
 df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
-df_final['pop_share_elementary'] = df_final['n_people_x'] / df_final['t_people']
-df_final['pop_share_superior']   = df_final['n_people_y'] / df_final['t_people']
+df_final['pop_share_elementary'] = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_superior']   = round(df_final['n_people_y'] / df_final['t_people'], 4)
 
 df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
 
@@ -558,8 +558,8 @@ df3 = income_series_wb_nchild0[['year', 'poor_hat_685']]
 df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
 
-df_cat1['gb_nchild0_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x'])
-df_cat1['wb_nchild0_error'] = np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y'])
+df_cat1['gb_nchild0_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_x']), 4)
+df_cat1['wb_nchild0_error'] = round(np.abs(df_cat1['poor_685'] - df_cat1['poor_hat_685_y']), 4)
 
 df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
 
@@ -574,8 +574,8 @@ df3 = income_series_wb_nchild1[['year', 'poor_hat_685']]
 df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
 
-df_cat2['gb_nchild1_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x'])
-df_cat2['wb_nchild1_error'] = np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y'])
+df_cat2['gb_nchild1_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_x']), 4)
+df_cat2['wb_nchild1_error'] = round(np.abs(df_cat2['poor_685'] - df_cat2['poor_hat_685_y']), 4)
 
 df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
 
@@ -590,8 +590,8 @@ df3 = income_series_wb_nchild2[['year', 'poor_hat_685']]
 df_cat3 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat3 = pd.merge(df_cat3, df3, on='year', how='inner')
 
-df_cat3['gb_nchild2_error'] = np.abs(df_cat3['poor_685'] - df_cat3['poor_hat_685_x'])
-df_cat3['wb_nchild2_error'] = np.abs(df_cat3['poor_685'] - df_cat3['poor_hat_685_y'])
+df_cat3['gb_nchild2_error'] = round(np.abs(df_cat3['poor_685'] - df_cat3['poor_hat_685_x']), 4)
+df_cat3['wb_nchild2_error'] = round(np.abs(df_cat3['poor_685'] - df_cat3['poor_hat_685_y']), 4)
 
 df_cat3 = df_cat3.iloc[ : , [0, 1, -2, -1]]
 
@@ -606,8 +606,8 @@ df3 = income_series_wb_nchild3[['year', 'poor_hat_685']]
 df_cat4 = pd.merge(df1,     df2, on='year', how='inner')
 df_cat4 = pd.merge(df_cat4, df3, on='year', how='inner')
 
-df_cat4['gb_nchild3_error'] = np.abs(df_cat4['poor_685'] - df_cat4['poor_hat_685_x'])
-df_cat4['wb_nchild3_error'] = np.abs(df_cat4['poor_685'] - df_cat4['poor_hat_685_y'])
+df_cat4['gb_nchild3_error'] = round(np.abs(df_cat4['poor_685'] - df_cat4['poor_hat_685_x']), 4)
+df_cat4['wb_nchild3_error'] = round(np.abs(df_cat4['poor_685'] - df_cat4['poor_hat_685_y']), 4)
 
 df_cat4 = df_cat4.iloc[ : , [0, 1, -2, -1]]
 
@@ -620,10 +620,10 @@ df_final = pd.merge(df_final, df_cat3, on='year', how='inner')
 df_final = pd.merge(df_final, df_cat4, on='year', how='inner', suffixes=['2', '3'])
 
 df_final['t_people'] = df_final['n_people0'] + df_final['n_people1'] + df_final['n_people2'] + df_final['n_people3']
-df_final['pop_share_nchild0'] = df_final['n_people0'] / df_final['t_people']
-df_final['pop_share_nchild1'] = df_final['n_people1'] / df_final['t_people']
-df_final['pop_share_nchild2'] = df_final['n_people2'] / df_final['t_people']
-df_final['pop_share_nchild3'] = df_final['n_people3'] / df_final['t_people']
+df_final['pop_share_nchild0'] = round(df_final['n_people0'] / df_final['t_people'], 4)
+df_final['pop_share_nchild1'] = round(df_final['n_people1'] / df_final['t_people'], 4)
+df_final['pop_share_nchild2'] = round(df_final['n_people2'] / df_final['t_people'], 4)
+df_final['pop_share_nchild3'] = round(df_final['n_people3'] / df_final['t_people'], 4)
 
 df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, 8, 9, 11, 12, -4, -3, -2, -1]]
 
