@@ -127,7 +127,10 @@ df2 = df2[list(name_mapping.values())]
 df2 = df2[df2['institution'] == 'GOBIERNOS LOCALES'].reset_index(drop=True)
 df2 = df2.drop(columns=['institution'])
 
-
+#--------------
+# Cleaning month==0
+#--------------
+df2 = df2.loc[df2['month'] != 0]
 
 
 
