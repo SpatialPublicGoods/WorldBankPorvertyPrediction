@@ -37,6 +37,7 @@ class DataPreparationForML:
         self.domestic_violence = 'domestic_violence.csv'
         self.cargo_vehicles = 'cargo_vehicles.csv'
         self.planilla = 'labor.csv'
+        self.public_income = 'public_income.csv'
 
         self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
         self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
@@ -86,12 +87,14 @@ class DataPreparationForML:
                                   'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
         self.individual_variables = ['nro_hijos',
-                                        # 'prii',	
-                                        # 'seci',	
-                                        # 'secc',	
-                                        # 'supi',	
-                                        # 'supc',
-                                        'edad'
+                                        'prii',	
+                                        'seci',	
+                                        'secc',	
+                                        'supi',	
+                                        'supc',
+                                        'edad',
+                                        'male',
+                                        'informal'
                                         ]
 
         self.indepvar_precipitation =   [
@@ -122,13 +125,20 @@ class DataPreparationForML:
                                             ]
 
         self.indepvar_nightlights = [
-                                    # 'min_nightlight',
-                                    # 'max_nightlight',
-                                    # 'mean_nightlight',
-                                    # 'stdDev_nightlight',
+                                    'min_nightlight',
+                                    'max_nightlight',
+                                    'mean_nightlight',
+                                    'stdDev_nightlight',
                                     'median_nightlight',
-                                    # 'range_nightlight'
+                                    'range_nightlight'
                                     ]        
+        
+        self.indepvar_public_income = [
+            'canon', 
+            'foncomun', 
+            'impuestos_municipales',
+            'recursos_directamente_recaudados'
+        ]
 
         self.indepvar_domestic_violence = ['cases_tot']
 
@@ -149,6 +159,7 @@ class DataPreparationForML:
                             self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
                             self.indepvar_cargo_vehicles +
                             self.indepvar_planilla +
+                            self.indepvar_public_income +
                             self.individual_variables
                             )        # self.indepvars = []
         
@@ -241,6 +252,10 @@ class DataPreparationForML:
         enaho_sedlac = pd.read_csv(os.path.join(self.dataPath, 
                                     self.working, 
                                     self.enaho_sedlac), index_col=0, parse_dates=True).reset_index()
+        
+        enaho_sedlac['male'] = (enaho_sedlac['hombre'] == 'Male').astype(int)
+
+        enaho_sedlac['informal'] = (enaho_sedlac['categ_lab'] == 'Informal').astype(int)
 
         return enaho_sedlac
 
@@ -472,6 +487,20 @@ class DataPreparationForML:
         planilla['ubigeo'] = 'U-' + planilla['ubigeo'].astype(str).str.zfill(6)
 
         return planilla
+
+
+
+    def read_public_income(self):
+        """
+        This function reads the cargo vehicles and returns a dataframe with the following variables:
+        """
+
+        public_income = pd.read_csv(os.path.join(self.dataPath, self.working, self.public_income), index_col=0).reset_index()
+
+        public_income['ubigeo'] = 'U-' + public_income['ubigeo'].astype(str).str.zfill(6)
+
+        return public_income
+
 
 
     def read_precipitation(self):
@@ -850,6 +879,8 @@ if __name__ == '__main__':
     
     labor = dpml.read_planilla_electronica()
 
+    public_income = dpml.read_public_income()
+
     precipitation = dpml.read_precipitation()
 
     nightlights = dpml.read_nightlights()
@@ -863,6 +894,7 @@ if __name__ == '__main__':
     ml_dataset = (enaho.merge(police_reports_by_ubigeo, on=['ubigeo', 'year'], how='left')
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(labor, on=['ubigeo', 'year', 'month'], how='left')
+                        .merge(public_income, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                         .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
                         .merge(nightlights, on=['conglome', 'year', 'month'], how='left')
@@ -915,3 +947,8 @@ if __name__ == '__main__':
     #             'missing_lag2',
     #             'missing_lag3',
     #             'missing_lag4']].mean()
+
+
+ml_dataset.dropna(subset='canon').year.value_counts().sort_index()
+ml_dataset.year.value_counts().sort_index()
+

@@ -12,7 +12,7 @@
 
 #SBATCH --partition=standard       # standard (default), long, gpu, mpi, highmem
 #SBATCH --cpus-per-task=10          # number of CPUs requested (for parallel tasks)
-#SBATCH --mem=300G                   # requested memory
+#SBATCH --mem=100G                   # requested memory
 #SBATCH --time=0-05:00:00          # wall clock limit (d-hh:mm:ss)
 
 # We requested 1 CPU, 240GB RAM, and 5 minutes of run time
@@ -63,8 +63,10 @@ echo "Run Python Script: 02_run_income_prediction_ml.py"
 python3 "03_run_income_prediction_gradient_boosting.py"
 
 # echo "Run Python Script: 04_generate_prediction_report.py"
-# python3 "04_generate_prediction_report.py"
 python3 "04_generate_prediction_report_gb.py"
+
+# echo "Run Python Script: 04_generate_prediction_report.py"
+python3 "05_prediction_report_time_series.py"
 
 #---------------------------------------------------------------------------------
 # Send an email with the slurm-test-%j.out file as an attachment

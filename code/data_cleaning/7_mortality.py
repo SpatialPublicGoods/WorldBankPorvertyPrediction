@@ -26,12 +26,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
 from fuzzywuzzy import fuzz, process
-from modules.utils_general import utils_general
+from data_cleaning.modules.utils_general import utils_general
 
 #--------------
 # Paths
 #--------------
-main_path = 'L:/.shortcut-targets-by-id/12-fuK40uOBz3FM-OXbZtk_OSlYcGpzpa/PovertyPredictionRealTime/data'
+# main_path = 'L:/.shortcut-targets-by-id/12-fuK40uOBz3FM-OXbZtk_OSlYcGpzpa/PovertyPredictionRealTime/data'
+main_path = 'J:/My Drive/PovertyPredictionRealTime/data'
 o1_path = os.path.join(main_path, '1_raw/peru/big_data/admin')
 d1_path = os.path.join(main_path, '2_intermediate')
 
@@ -40,7 +41,6 @@ d1_path = os.path.join(main_path, '2_intermediate')
 #--------------
 freq = 'm'
 #%%
-
 
 
 
@@ -207,7 +207,7 @@ df = df.sort_values(by=agg_list)
 #--------------
 df = df.rename(columns={
     'department' : 'region',
-    'province'   : 'privincia',
+    'province'   : 'provincia',
     'district'   : 'distrito',
     'date'       : 'deaths_tot',
     'female'     : 'female_p',
@@ -246,36 +246,8 @@ df2 = utils.input_ubigeo_to_dataframe(df2, ['region', 'provincia', 'distrito'])
 
 
 
-
-
-
-
-
-
-
-# %%
-
-
-
-
-
-# ============================
-#
-# 3. EXPORTING DATA
-#
-# ============================
-
-# %%
-
-#--------------
-# Copy
-#--------------
-final_df = df.copy()
-
-#--------------
-# Exporting final dataframe
-#--------------
-export_file = os.path.join(d1_path, 'hospitals.csv')
+final_df = df2.copy()
+export_file = os.path.join(d1_path, 'mortality.csv')
 final_df.to_csv(export_file, index=False, encoding='utf-8')
 
-# %%
+

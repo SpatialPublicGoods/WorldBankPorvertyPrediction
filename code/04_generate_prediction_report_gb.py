@@ -32,7 +32,7 @@ from generate_figures_for_report import GenerateFiguresReport
 # Parameters
 freq = 'm'
 
-date = '2024-03-15' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-03-28' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -334,8 +334,10 @@ ax.set_ylabel('Difference: True - Predicted')
 ax.set_title('Poverty Comparison by Year')
 ax.set_xticklabels(porverty_comparison_diff.index, rotation=45)
 plt.legend(title='Year',  loc='upper right')
-plt.ylim([-.8, .8])
+plt.ylim([-.2, .2])
 plt.tight_layout()
+plt.grid(True)
+# plt.show()
 plt.savefig('../figures/fig3_prediction_vs_true_poverty_rate_national.pdf', bbox_inches='tight')
 
 print('Figure 3 saved')

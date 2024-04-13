@@ -209,7 +209,7 @@ class PostEstimationRoutines(DataPreparationForML):
                                         'poor_hat_685': 'sum', 
                                         'poor_hat_365': 'sum',
                                         'poor_hat_215': 'sum',
-                                        'n_people': 'count'
+                                        'n_people': 'sum'
                                         })
                                     .reset_index()
                                     )
