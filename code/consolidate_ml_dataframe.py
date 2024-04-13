@@ -38,6 +38,7 @@ class DataPreparationForML:
         self.cargo_vehicles = 'cargo_vehicles.csv'
         self.planilla = 'labor.csv'
         self.public_income = 'public_income.csv'
+        self.public_expenditure = 'public_expenditure.csv'
 
         self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
         self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
@@ -140,6 +141,34 @@ class DataPreparationForML:
             'recursos_directamente_recaudados'
         ]
 
+        self.indepvar_public_expenditure = [
+            'pubexp_dev_agriculture',	
+            'pubexp_dev_commerce'	,
+            'pubexp_dev_communications',	
+            'pubexp_dev_culture_sports',	
+            'pubexp_dev_education'	,
+            'pubexp_dev_energy'	,
+            'pubexp_dev_environment',	
+            'pubexp_dev_fishing'	,
+            'pubexp_dev_health'	,
+            'pubexp_dev_industry'	,
+            'pubexp_dev_justice'	,
+            'pubexp_dev_labor'	,
+            'pubexp_dev_mining'	,
+            'pubexp_dev_na'	,
+            'pubexp_dev_planning_management' 	,
+            'pubexp_dev_public_debt'	,
+            'pubexp_dev_public_order'	,
+            'pubexp_dev_sanitation'	,
+            'pubexp_dev_social_protection'	,
+            'pubexp_dev_social_security'	,
+            'pubexp_dev_tourism'	,
+            'pubexp_dev_transport',	
+            'pubexp_dev_urban_development'
+            ]
+
+
+
         self.indepvar_domestic_violence = ['cases_tot']
 
         self.indepvar_cargo_vehicles = ['vehicles_tot', 'fab_5y_p', 'fab_10y_p', 'fab_20y_p',
@@ -160,6 +189,7 @@ class DataPreparationForML:
                             self.indepvar_cargo_vehicles +
                             self.indepvar_planilla +
                             self.indepvar_public_income +
+                            self.indepvar_public_expenditure + 
                             self.individual_variables
                             )        # self.indepvars = []
         
@@ -495,11 +525,23 @@ class DataPreparationForML:
         This function reads the cargo vehicles and returns a dataframe with the following variables:
         """
 
-        public_income = pd.read_csv(os.path.join(self.dataPath, self.working, self.public_income), index_col=0).reset_index()
+        public_income = pd.read_csv(os.path.join(self.dataPath, self.working, self.public_income), index_col=0).reset_index().fillna(0)
 
         public_income['ubigeo'] = 'U-' + public_income['ubigeo'].astype(str).str.zfill(6)
 
         return public_income
+
+
+    def read_public_expenditure(self):
+        """
+        This function reads the cargo vehicles and returns a dataframe with the following variables:
+        """
+
+        public_expenditure = pd.read_csv(os.path.join(self.dataPath, self.working, self.public_expenditure), index_col=0).reset_index().fillna(0).drop(columns='quarter')
+
+        public_expenditure['ubigeo'] = 'U-' + public_expenditure['ubigeo'].astype(str).str.zfill(6)
+
+        return public_expenditure
 
 
 
@@ -881,6 +923,8 @@ if __name__ == '__main__':
 
     public_income = dpml.read_public_income()
 
+    public_expenditure = dpml.read_public_expenditure()
+
     precipitation = dpml.read_precipitation()
 
     nightlights = dpml.read_nightlights()
@@ -895,6 +939,7 @@ if __name__ == '__main__':
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(labor, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(public_income, on=['ubigeo', 'year', 'month'], how='left')
+                        .merge(public_expenditure, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                         .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
                         .merge(nightlights, on=['conglome', 'year', 'month'], how='left')
@@ -949,6 +994,6 @@ if __name__ == '__main__':
     #             'missing_lag4']].mean()
 
 
-ml_dataset.dropna(subset='canon').year.value_counts().sort_index()
-ml_dataset.year.value_counts().sort_index()
+    # ml_dataset.dropna(subset='canon').year.value_counts().sort_index()
+    # ml_dataset.year.value_counts().sort_index()
 
