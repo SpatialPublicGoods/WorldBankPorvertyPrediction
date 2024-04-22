@@ -39,6 +39,7 @@ class DataPreparationForML:
         self.planilla = 'labor.csv'
         self.public_income = 'public_income.csv'
         self.public_expenditure = 'public_expenditure.csv'
+        self.mortality = 'mortality.csv'
 
         self.temperature_max = '1_raw/peru/big_data/other/clima/Tmax.csv'
         self.temperature_min = '1_raw/peru/big_data/other/clima/Tmin.csv'
@@ -87,6 +88,16 @@ class DataPreparationForML:
                                   'workers_sex_si_perc', 'workers_type_exe_perc', 'workers_type_wor_perc', 
                                   'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
+        self.indepvar_mortality = [
+                                    'deaths_tot', 
+                                    'female_p', 
+                                    'male_p', 
+                                    'suicide_p',
+                                    'traffic_accident_p',
+                                    'murder_p',
+                                    'feminicide_p'
+                                    ]
+        
         self.individual_variables = ['nro_hijos',
                                         'prii',	
                                         'seci',	
@@ -124,6 +135,7 @@ class DataPreparationForML:
                                             # 'Median_temperature_min', 
                                             # 'Range_temperature_min'
                                             ]
+        
 
         self.indepvar_nightlights = [
                                     'min_nightlight',
@@ -188,6 +200,7 @@ class DataPreparationForML:
                             self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
                             self.indepvar_cargo_vehicles +
                             self.indepvar_planilla +
+                            self.indepvar_mortality +
                             self.indepvar_public_income +
                             self.indepvar_public_expenditure + 
                             self.individual_variables
@@ -421,6 +434,26 @@ class DataPreparationForML:
         domestic_violence = domestic_violence.groupby(['ubigeo','year', 'month']).first().reset_index()
 
         return domestic_violence
+
+    
+    def read_mortality(self):
+
+        """
+        This function reads the mortality data and returns a dataframe with the following variables:
+
+        - ubigeo: district code
+        - year: year of the survey
+        - month: month of the survey
+
+        """
+
+        mortality = pd.read_csv(os.path.join(self.dataPath, self.working, self.mortality), index_col=0).reset_index().rename(columns={'Ubigeo':'ubigeo'})
+
+        mortality['ubigeo'] = 'U-' + mortality['ubigeo'].astype(str).str.zfill(6)
+
+        mortality = mortality.groupby(['ubigeo','year', 'month']).first().reset_index()
+
+        return mortality
 
 
     def read_police_reports(self):
@@ -903,7 +936,7 @@ if __name__ == '__main__':
     enaho_for_training = dpml.read_enaho_sedlac()
 
     enaho_for_prediction = dpml.read_enaho_sedlac_for_prediction(
-        year_base=2016, 
+        year_base=2018, 
         year_end=2021
     )
     
@@ -923,6 +956,8 @@ if __name__ == '__main__':
 
     public_income = dpml.read_public_income()
 
+    mortality = dpml.read_mortality()
+
     public_expenditure = dpml.read_public_expenditure()
 
     precipitation = dpml.read_precipitation()
@@ -939,6 +974,7 @@ if __name__ == '__main__':
                         .merge(domestic_violence, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(labor, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(public_income, on=['ubigeo', 'year', 'month'], how='left')
+                        .merge(mortality, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(public_expenditure, on=['ubigeo', 'year', 'month'], how='left')
                         .merge(cargo_vehicles.drop(columns='quarter'), on=['ubigeo', 'year', 'month'], how='left')
                         .merge(precipitation, on=['conglome', 'year', 'month'], how='left')
