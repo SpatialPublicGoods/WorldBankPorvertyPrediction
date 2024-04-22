@@ -179,7 +179,7 @@ plt.savefig('../figures/std_trend.pdf', bbox_inches='tight')
 #----------------------------------------------------------------
 
 # Run scatter plot with distribution for prediction year (default = 2016)
-df_pred_year = ml_dataset_filtered_train.query('year >=' + str(base_year+1)).query('year <= ' + str(base_year)).copy()
+df_pred_year = ml_dataset_filtered_train.query('year >=' + str(base_year+1)).query('year <= ' + str(base_year+3)).copy()
 
 figuresReport.create_binned_scatterplot(
     df=df_pred_year.copy(), 
