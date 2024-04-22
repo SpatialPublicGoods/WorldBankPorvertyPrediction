@@ -158,7 +158,7 @@ class DataPreparationForML:
         ]
 
         self.indepvar_public_expenditure = [
-            # 'pubexp_dev_agriculture',	
+            'pubexp_dev_agriculture',	
             # 'pubexp_dev_commerce'	,
             # 'pubexp_dev_communications',	
             # 'pubexp_dev_culture_sports',	
@@ -166,7 +166,7 @@ class DataPreparationForML:
             # 'pubexp_dev_energy'	,
             # 'pubexp_dev_environment',	
             # 'pubexp_dev_fishing'	,
-            # 'pubexp_dev_health'	,
+            'pubexp_dev_health'	,
             # 'pubexp_dev_industry'	,
             # 'pubexp_dev_justice'	,
             # 'pubexp_dev_labor'	,
@@ -175,11 +175,11 @@ class DataPreparationForML:
             # 'pubexp_dev_planning_management' 	,
             # 'pubexp_dev_public_debt'	,
             # 'pubexp_dev_public_order'	,
-            # 'pubexp_dev_sanitation'	,
+            'pubexp_dev_sanitation'	,
             # 'pubexp_dev_social_protection'	,
             # 'pubexp_dev_social_security'	,
             # 'pubexp_dev_tourism'	,
-            # 'pubexp_dev_transport',	
+            'pubexp_dev_transport',	
             # 'pubexp_dev_urban_development'
             ]
 
