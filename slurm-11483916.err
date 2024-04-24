@@ -1,0 +1,154 @@
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py:801: DtypeWarning: Columns (7,8,45,46,47,49,80,81,82) have mixed types. Specify dtype option on import or set low_memory=False.
+  ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: divide by zero encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: invalid value encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:767: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if not hasattr(array, "sparse") and array.dtypes.apply(is_sparse).any():
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:605: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype):
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:614: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype) or not is_extension_array_dtype(pd_dtype):
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/03_run_income_prediction_gradient_boosting.py", line 77, in <module>
+    ml_dataset = dpml.input_missing_values(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 846, in input_missing_values
+    X_imputed = imputer.fit_transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 142, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 859, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 390, in fit
+    X = self._validate_input(X, in_fit=True)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    raise ve
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 327, in _validate_input
+    X = self._validate_data(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 546, in _validate_data
+    X = check_array(X, input_name="X", **check_params)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 921, in check_array
+    _assert_all_finite(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 161, in _assert_all_finite
+    raise ValueError(msg_err)
+ValueError: Input X contains infinity or a value too large for dtype('float64').
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py:801: DtypeWarning: Columns (7,8,45,46,47,49,80,81,82) have mixed types. Specify dtype option on import or set low_memory=False.
+  ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:79: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value 'No Education' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['neduc'] == 1, 'educ'] = 'No Education'
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:88: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value '0' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['nro_hijos'] == 0, 'n_children'] = '0'
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: divide by zero encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: invalid value encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:767: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if not hasattr(array, "sparse") and array.dtypes.apply(is_sparse).any():
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:605: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype):
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:614: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype) or not is_extension_array_dtype(pd_dtype):
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/04_generate_prediction_report_gb.py", line 60, in <module>
+    ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py", line 94, in generate_categorical_variables_for_analysis
+    ml_dataset = self.input_missing_values(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 846, in input_missing_values
+    X_imputed = imputer.fit_transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 142, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 859, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 390, in fit
+    X = self._validate_input(X, in_fit=True)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    raise ve
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 327, in _validate_input
+    X = self._validate_data(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 546, in _validate_data
+    X = check_array(X, input_name="X", **check_params)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 921, in check_array
+    _assert_all_finite(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 161, in _assert_all_finite
+    raise ValueError(msg_err)
+ValueError: Input X contains infinity or a value too large for dtype('float64').
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py:801: DtypeWarning: Columns (7,8,45,46,47,49,80,81,82) have mixed types. Specify dtype option on import or set low_memory=False.
+  ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:79: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value 'No Education' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['neduc'] == 1, 'educ'] = 'No Education'
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:88: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value '0' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['nro_hijos'] == 0, 'n_children'] = '0'
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: divide by zero encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: invalid value encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:767: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if not hasattr(array, "sparse") and array.dtypes.apply(is_sparse).any():
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:605: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype):
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:614: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype) or not is_extension_array_dtype(pd_dtype):
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/05_prediction_report_time_series.py", line 60, in <module>
+    ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py", line 94, in generate_categorical_variables_for_analysis
+    ml_dataset = self.input_missing_values(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 846, in input_missing_values
+    X_imputed = imputer.fit_transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 142, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 859, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 390, in fit
+    X = self._validate_input(X, in_fit=True)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    raise ve
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 327, in _validate_input
+    X = self._validate_data(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 546, in _validate_data
+    X = check_array(X, input_name="X", **check_params)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 921, in check_array
+    _assert_all_finite(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 161, in _assert_all_finite
+    raise ValueError(msg_err)
+ValueError: Input X contains infinity or a value too large for dtype('float64').
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py:801: DtypeWarning: Columns (7,8,45,46,47,49,80,81,82) have mixed types. Specify dtype option on import or set low_memory=False.
+  ml_dataset = pd.read_csv(os.path.join(self.dataPath, self.clean, 'ml_dataset_' + self.date +'.csv'), index_col=0)
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:79: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value 'No Education' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['neduc'] == 1, 'educ'] = 'No Education'
+/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py:88: FutureWarning: Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas. Value '0' has dtype incompatible with float64, please explicitly cast to a compatible dtype first.
+  ml_dataset.loc[ml_dataset['nro_hijos'] == 0, 'n_children'] = '0'
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: divide by zero encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/pandas/core/internals/blocks.py:366: RuntimeWarning: invalid value encountered in log
+  result = func(self.values, **kwargs)
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:767: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if not hasattr(array, "sparse") and array.dtypes.apply(is_sparse).any():
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:605: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype):
+/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py:614: FutureWarning: is_sparse is deprecated and will be removed in a future version. Check `isinstance(dtype, pd.SparseDtype)` instead.
+  if is_sparse(pd_dtype) or not is_extension_array_dtype(pd_dtype):
+Traceback (most recent call last):
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/06_prection_error_table.py", line 63, in <module>
+    ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/post_estimation_ml_routines.py", line 94, in generate_categorical_variables_for_analysis
+    ml_dataset = self.input_missing_values(ml_dataset)
+  File "/home/fcalle0/GitHub/WorldBankPorvertyPrediction/code/consolidate_ml_dataframe.py", line 846, in input_missing_values
+    X_imputed = imputer.fit_transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/_set_output.py", line 142, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 859, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 390, in fit
+    X = self._validate_input(X, in_fit=True)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 344, in _validate_input
+    raise ve
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/impute/_base.py", line 327, in _validate_input
+    X = self._validate_data(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/base.py", line 546, in _validate_data
+    X = check_array(X, input_name="X", **check_params)
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 921, in check_array
+    _assert_all_finite(
+  File "/apps/python/3.10/3.10.9/lib/python3.10/site-packages/sklearn/utils/validation.py", line 161, in _assert_all_finite
+    raise ValueError(msg_err)
+ValueError: Input X contains infinity or a value too large for dtype('float64').
