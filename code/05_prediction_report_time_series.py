@@ -32,7 +32,7 @@ from generate_figures_for_report import GenerateFiguresReport
 # Parameters
 freq = 'm'
 
-date = '2024-03-28' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-04-22' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -65,30 +65,32 @@ ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_datas
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
+base_year = 2018 # Last year used for training
+
 year_end = 2021
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<=2016')
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<= ' + str(base_year))
 
 # Validation dataset:
 ml_dataset_filtered_validation = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                        .query('true_year=='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 # Validation dataset (World Bank version):
 ml_dataset_filtered_validation_world_bank = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                        .query('true_year=='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 # True dataset:
 ml_dataset_filtered_true = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
+                                        .query('true_year !='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
@@ -160,10 +162,11 @@ df_wb['quarter'] = df_wb['month'].map(dpml.month_to_quarter)
 
 df_wb['n_people'] = df_wb['mieperho'] * df_wb['pondera_i']
 
-# Get training data using the true level of income:
-df.loc[df['year'] <= 2016, 'income_pc_hat'] = df.loc[df['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
 
-df_wb.loc[df_wb['year'] <= 2016, 'income_pc_hat'] = df_wb.loc[df_wb['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
+# Get training data using the true level of income:
+df.loc[df['year'] <= base_year, 'income_pc_hat'] = df.loc[df['year'] <= base_year, 'income_pc'] # Change income_pc_hat to income_pc for years <= s
+
+df_wb.loc[df_wb['year'] <= base_year, 'income_pc_hat'] = df_wb.loc[df_wb['year'] <= base_year, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
 
 
 #%% Figure 5 (fig5_average_income_time_series): 

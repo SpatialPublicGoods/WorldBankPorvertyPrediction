@@ -32,7 +32,7 @@ from generate_figures_for_report import GenerateFiguresReport
 # Parameters
 freq = 'm'
 
-date = '2024-04-13' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-04-22' #datetime.today().strftime('%Y-%m-%d')
 
 settings = global_settings()
 
@@ -65,30 +65,31 @@ ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_datas
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
+base_year = 2018 # Last year used for training
 year_end = 2021
 
-ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<=2016')
+ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<= ' + str(base_year))
 
 # Validation dataset:
 ml_dataset_filtered_validation = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                        .query('true_year=='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 # Validation dataset (World Bank version):
 ml_dataset_filtered_validation_world_bank = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year==2016') # Keep only observations that correspond to 2016 data
+                                        .query('true_year=='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 # True dataset:
 ml_dataset_filtered_true = (
                                     dpml.filter_ml_dataset(ml_dataset, year_end=year_end)
-                                        .query('year >= 2017')
+                                        .query('year > '+ str(base_year))
                                         .query('year <= ' + str(year_end))
-                                        .query('true_year != 2016') # Keep observations that do not correspond to 2016 data
+                                        .query('true_year !='+ str(base_year)) # Keep only observations that correspond to 2016 data
                                     )
 
 Y_standardized_train, X_standardized_train, scaler_X_train, scaler_Y_train = dpml.get_depvar_and_features(ml_dataset_filtered_train)
@@ -161,9 +162,9 @@ df_wb['quarter'] = df_wb['month'].map(dpml.month_to_quarter)
 df_wb['n_people'] = df_wb['mieperho'] * df_wb['pondera_i']
 
 # Get training data using the true level of income:
-df.loc[df['year'] <= 2016, 'income_pc_hat'] = df.loc[df['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
+df.loc[df['year'] <= base_year, 'income_pc_hat'] = df.loc[df['year'] <= base_year, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
 
-df_wb.loc[df_wb['year'] <= 2016, 'income_pc_hat'] = df_wb.loc[df_wb['year'] <= 2016, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
+df_wb.loc[df_wb['year'] <= base_year, 'income_pc_hat'] = df_wb.loc[df_wb['year'] <= base_year, 'income_pc'] # Change income_pc_hat to income_pc for years <= 2016
 
 
 
@@ -178,7 +179,7 @@ plt.savefig('../figures/std_trend.pdf', bbox_inches='tight')
 #----------------------------------------------------------------
 
 # Run scatter plot with distribution for prediction year (default = 2016)
-df_pred_year = ml_dataset_filtered_train.query('year >= 2013').query('year <= 2016').copy()
+df_pred_year = ml_dataset_filtered_train.query('year >=' + str(base_year+1)).query('year <= ' + str(base_year+3)).copy()
 
 figuresReport.create_binned_scatterplot(
     df=df_pred_year.copy(), 
@@ -422,34 +423,34 @@ for pp in ['685', '365', '215']:
 
   plt.clf()
   plt.figure(figsize=(10, 10))
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_' + pp], 
-                    y=porverty_comparison_region_pred.query('year == 2017')['poor_hat_' + pp], 
-                    label='2017', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+1))['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == ' + str(base_year+1))['poor_hat_' + pp], 
+                    label=str(base_year+1), 
                     color=settings.color1,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_' + pp], 
-                    y=porverty_comparison_region_pred.query('year == 2018')['poor_hat_' + pp], 
-                    label='2018', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+2))['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == ' + str(base_year+2))['poor_hat_' + pp], 
+                    label=str(base_year+2), 
                     color=settings.color2,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_' + pp], 
-                    y=porverty_comparison_region_pred.query('year == 2019')['poor_hat_' + pp], 
-                    label='2019', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+3))['poor_' + pp], 
+                    y=porverty_comparison_region_pred.query('year == ' + str(base_year+3))['poor_hat_' + pp], 
+                    label= str(base_year+3), 
                     color=settings.color3,
                     s=150
                   )
   
   max_x_pred = (porverty_comparison_region_pred.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >= ' + str(base_year+1))
+                                          .query('year <= ' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
   max_x_wb = (porverty_comparison_region.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >= ' + str(base_year+1))
+                                          .query('year <= ' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
@@ -473,34 +474,34 @@ for pp in ['685', '365', '215']:
 
   plt.clf()
   plt.figure(figsize=(10, 10))
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2017')['poor_' + pp], 
-                    y=porverty_comparison_region_wb.query('year == 2017')['poor_hat_' + pp], 
-                    label='2017', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+1))['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == ' + str(base_year+1))['poor_hat_' + pp], 
+                    label=str(base_year+1), 
                     color=settings.color1,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2018')['poor_' + pp], 
-                    y=porverty_comparison_region_wb.query('year == 2018')['poor_hat_' + pp], 
-                    label='2018', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+2))['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == ' + str(base_year+2))['poor_hat_' + pp], 
+                    label=str(base_year+2), 
                     color=settings.color2,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_region.query('year == 2019')['poor_' + pp], 
-                    y=porverty_comparison_region_wb.query('year == 2019')['poor_hat_' + pp], 
-                    label='2019', 
+  sns.scatterplot(x=porverty_comparison_region.query('year == ' + str(base_year+3))['poor_' + pp], 
+                    y=porverty_comparison_region_wb.query('year == ' + str(base_year+3))['poor_hat_' + pp], 
+                    label=str(base_year+3), 
                     color=settings.color3,
                     s=150
                   )
   
   max_x_pred = (porverty_comparison_region_wb.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >= ' + str(base_year+1))
+                                          .query('year <= ' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
   max_x_wb = (porverty_comparison_region.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >= ' + str(base_year+1))
+                                          .query('year <= ' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
@@ -546,34 +547,34 @@ for pp in ['685', '365', '215']:
 
   plt.clf()
   plt.figure(figsize=(10, 10))
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_' + pp], 
-                    y=porverty_comparison_provincia_pred.query('year == 2017')['poor_hat_' + pp], 
-                    label='2017', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+1))['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year >= ' + str(base_year+1))['poor_hat_' + pp], 
+                    label=str(base_year+1), 
                     color=settings.color1,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_' + pp], 
-                    y=porverty_comparison_provincia_pred.query('year == 2018')['poor_hat_' + pp], 
-                    label='2018', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+2))['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year >= ' + str(base_year+2))['poor_hat_' + pp], 
+                    label=str(base_year+2), 
                     color=settings.color2,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_' + pp], 
-                    y=porverty_comparison_provincia_pred.query('year == 2019')['poor_hat_' + pp], 
-                    label='2019', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+3))['poor_' + pp], 
+                    y=porverty_comparison_provincia_pred.query('year >= ' + str(base_year+3))['poor_hat_' + pp], 
+                    label=str(base_year+3), 
                     color=settings.color3,
                     s=150
                   )
   
   max_x_pred = (porverty_comparison_provincia_pred.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >=' + str(base_year+1))
+                                          .query('year <=' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
   max_x_wb = (porverty_comparison_provincia.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >=' + str(base_year+1))
+                                          .query('year <=' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
@@ -596,34 +597,34 @@ for pp in ['685', '365', '215']:
 
   plt.clf()
   plt.figure(figsize=(10, 10))
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2017')['poor_' + pp], 
-                    y=porverty_comparison_provincia_wb.query('year == 2017')['poor_hat_' + pp], 
-                    label='2017', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+1))['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year >= ' + str(base_year+1))['poor_hat_' + pp], 
+                    label=str(base_year+1), 
                     color=settings.color1,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2018')['poor_' + pp], 
-                    y=porverty_comparison_provincia_wb.query('year == 2018')['poor_hat_' + pp], 
-                    label='2018', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+2))['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year >= ' + str(base_year+2))['poor_hat_' + pp], 
+                    label=str(base_year+2), 
                     color=settings.color2,
                     s=150
                   )
-  sns.scatterplot(x=porverty_comparison_provincia.query('year == 2019')['poor_' + pp], 
-                    y=porverty_comparison_provincia_wb.query('year == 2019')['poor_hat_' + pp], 
-                    label='2019', 
+  sns.scatterplot(x=porverty_comparison_provincia.query('year >= ' + str(base_year+3))['poor_' + pp], 
+                    y=porverty_comparison_provincia_wb.query('year >= ' + str(base_year+3))['poor_hat_' + pp], 
+                    label=str(base_year+3), 
                     color=settings.color3,
                     s=150
                   )
   
   max_x_pred = (porverty_comparison_provincia_wb.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >=' + str(base_year+1))
+                                          .query('year <=' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
   max_x_wb = (porverty_comparison_provincia.reset_index()
-                                          .query('year >= 2017')
-                                          .query('year <= 2019')
+                                          .query('year >=' + str(base_year+1))
+                                          .query('year <=' + str(base_year+3))
                                           .loc[:, ['poor_' + pp, 'poor_hat_' + pp]]
                                           .max()
                                           .max())
@@ -654,7 +655,7 @@ porverty_comparison_provincia_diff = (porverty_comparison_provincia
 porverty_comparison_provincia_diff[['diff_685', 'diff_365',  'diff_215']] = np.array(porverty_comparison_provincia_diff[['poor_hat_685_x', 'poor_hat_365_x',  'poor_hat_215_x']]) - np.array(porverty_comparison_provincia_diff[['poor_685','poor_365','poor_215']])
 porverty_comparison_provincia_diff[['diff_wb_685', 'diff_wb_365',  'diff_wb_215']] = np.array(porverty_comparison_provincia_diff[['poor_hat_685_y', 'poor_hat_365_y',  'poor_hat_215_y']]) - np.array(porverty_comparison_provincia_diff[['poor_685','poor_365','poor_215']])
 
-porverty_comparison_provincia_diff = porverty_comparison_provincia_diff.query('year >= 2017')
+porverty_comparison_provincia_diff = porverty_comparison_provincia_diff.query('year >=' + str(base_year+1))
 
 
 # Plotting difference at provincial level p685:

@@ -96,7 +96,7 @@ class PostEstimationRoutines(DataPreparationForML):
         return ml_dataset
 
 
-    def add_random_shocks_by_region(self, ml_df, ml_df_train, error_col, region_col, shock_col, ubigeo_col):
+    def add_random_shocks_by_region(self, ml_df, ml_df_train, error_col, region_col, shock_col, ubigeo_col, base_year=2016):
         """
         Add a column of random shocks stratified by region to the DataFrame.
         Parameters:
@@ -116,7 +116,7 @@ class PostEstimationRoutines(DataPreparationForML):
         df[shock_col] = np.nan
 
         # Do the same for the train data so we can back out the std dev of predicted income in the region
-        df_train = ml_df_train.query('year == 2016').copy()
+        df_train = ml_df_train.query('year == ' + str(base_year)).copy()
         df_train[region_col] = df_train[ubigeo_col].str[:4]
         df_train[shock_col] = np.nan
 
@@ -253,7 +253,7 @@ class PostEstimationRoutines(DataPreparationForML):
 
 
 
-    def add_shocks_and_compute_income(self, ml_dataset, ml_dataset_train):
+    def add_shocks_and_compute_income(self, ml_dataset, ml_dataset_train, base_year=2016):
 
         """
         This function adds predicted income to the DataFrame.
@@ -278,7 +278,8 @@ class PostEstimationRoutines(DataPreparationForML):
                                             error_col='predicted_error', 
                                             region_col='region', 
                                             shock_col='random_shock', 
-                                            ubigeo_col='ubigeo'
+                                            ubigeo_col='ubigeo',
+                                            base_year=base_year
                                             ).random_shock
                                             )
 
