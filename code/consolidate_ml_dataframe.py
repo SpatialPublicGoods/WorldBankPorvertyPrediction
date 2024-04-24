@@ -204,9 +204,9 @@ class DataPreparationForML:
                             self.indepvar_police_reports + #   self.indepvar_domestic_violence + 
                             self.indepvar_cargo_vehicles +
                             self.indepvar_planilla +
-                            self.indepvar_mortality +
+                            # self.indepvar_mortality +
                             self.indepvar_public_income +
-                            self.indepvar_public_expenditure + 
+                            # self.indepvar_public_expenditure + 
                             self.individual_variables
                             )        # self.indepvars = []
         
