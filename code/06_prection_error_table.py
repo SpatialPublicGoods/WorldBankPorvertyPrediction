@@ -66,9 +66,10 @@ ml_dataset = postEstimation.generate_categorical_variables_for_analysis(ml_datas
 # 2. Obtain filtered dataset:
 #--------------------------------------------------------------------------
 
-base_year = 2018 # Last year used for training
+base_year = dpml.base_year # Last year used for training
 
-year_end = 2021
+year_end = dpml.year_end
+
 
 ml_dataset_filtered_train = dpml.filter_ml_dataset(ml_dataset, year_end=year_end).query('year<= ' + str(base_year))
 

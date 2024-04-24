@@ -26,6 +26,10 @@ class DataPreparationForML:
 
         self.clean = '4_clean'
 
+        self.base_year = 2016
+
+        self.year_end = 2021
+
         # 2. define file names: 
 
         self.geo_sedlac = 'geo_sedlac_'
@@ -89,13 +93,13 @@ class DataPreparationForML:
                                   'workers_type_emp_perc',	'workers_type_nd_perc', 'salaries_mean']
 
         self.indepvar_mortality = [
-                                    'deaths_tot', 
-                                    'female_p', 
-                                    'male_p', 
-                                    'suicide_p',
-                                    'traffic_accident_p',
-                                    'murder_p',
-                                    'feminicide_p'
+                                    # 'deaths_tot', 
+                                    # 'female_p', 
+                                    # 'male_p', 
+                                    # 'suicide_p',
+                                    # 'traffic_accident_p',
+                                    # 'murder_p',
+                                    # 'feminicide_p'
                                     ]
         
         self.individual_variables = ['nro_hijos',
@@ -936,8 +940,8 @@ if __name__ == '__main__':
     enaho_for_training = dpml.read_enaho_sedlac()
 
     enaho_for_prediction = dpml.read_enaho_sedlac_for_prediction(
-        year_base=2018, 
-        year_end=2021
+        year_base = dpml.base_year, 
+        year_end = dpml.year_end
     )
     
     # Append both datasets:
