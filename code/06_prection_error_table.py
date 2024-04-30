@@ -670,3 +670,511 @@ df_main.to_csv(os.path.join(path_github, file_name), index=True)
 
 
 
+
+
+
+#------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------
+# Compute prediction error in Average Income
+#------------------------------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------------------------------------
+
+dep_variable = 'income_pc_weighted'
+dep_variable_hat = 'income_pc_hat_weighted'
+
+
+grouping_variables= ['year', 'urbano']
+
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_wb = postEstimation.group_variables_for_time_series(grouping_variables, df_wb, frequency='yearly')
+
+# Split between urbano and rural:
+income_series_pred_urban = income_series_pred.query('urbano==1')
+income_series_pred_rural = income_series_pred.query('urbano==0')
+
+income_series_true_urban = income_series_true.query('urbano==1')
+income_series_true_rural = income_series_true.query('urbano==0')
+
+income_series_wb_urban = income_series_wb.query('urbano==1')
+income_series_wb_rural = income_series_wb.query('urbano==0')
+
+#################
+### Urban data
+#################
+
+df1 = income_series_true_urban[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_urban[['year',dep_variable_hat]]
+df3 = income_series_wb_urban[['year', dep_variable_hat]]
+
+df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
+
+df_cat1['gb_urban_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_x']), 4)
+df_cat1['wb_urban_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_y']), 4)
+
+df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Rural data
+#################
+
+df1 = income_series_true_rural[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_rural[['year', dep_variable_hat]]
+df3 = income_series_wb_rural[['year', dep_variable_hat]]
+
+df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
+
+df_cat2['gb_rural_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_x']), 4)
+df_cat2['wb_rural_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_y']), 4)
+
+df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
+
+
+#################
+### Merging
+#################
+
+df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
+
+df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
+df_final['pop_share_urban'] = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_rural'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
+
+df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
+
+df_final = df_final[df_final['year'] >= base_year + 1].reset_index(drop=True)
+
+
+#################
+### Reshape
+#################
+
+def reshape_data(df, category):
+    years = df['year'].unique()
+    reshaped_data = {}
+    for year in years:
+        reshaped_data[f'gb_error_{year}'] = df.loc[df['year'] == year, f'gb_{category}_error'].values
+        reshaped_data[f'wb_error_{year}'] = df.loc[df['year'] == year, f'wb_{category}_error'].values
+        reshaped_data[f'pop_share_{year}'] = df.loc[df['year'] == year, f'pop_share_{category}'].values
+    return pd.DataFrame(reshaped_data, index=[category])
+
+urban_data = reshape_data(df_final, 'urban')
+rural_data = reshape_data(df_final, 'rural')
+
+df_main = pd.concat([urban_data, rural_data])
+
+
+#--------------------------------------------------------------------------
+# 7. Male and Female data
+#--------------------------------------------------------------------------
+
+grouping_variables = ['year', 'hombre']
+
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_wb = postEstimation.group_variables_for_time_series(grouping_variables, df_wb, frequency='yearly')
+
+# Split between urbano and rural:
+income_series_pred_male = income_series_pred.query("hombre== 'Male' ")
+income_series_pred_female = income_series_pred.query("hombre== 'Female' ")
+
+income_series_true_male = income_series_true.query("hombre== 'Male' ")
+income_series_true_female = income_series_true.query("hombre== 'Female' ")
+
+income_series_wb_male = income_series_wb.query("hombre== 'Male' ")
+income_series_wb_female = income_series_wb.query("hombre== 'Female' ")
+
+#################
+### Male data
+#################
+
+df1 = income_series_true_male[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_male[['year', dep_variable_hat]]
+df3 = income_series_wb_male[['year', dep_variable_hat]]
+
+df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
+
+df_cat1['gb_male_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_x']), 4)
+df_cat1['wb_male_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_y']), 4)
+
+df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Female data
+#################
+
+df1 = income_series_true_female[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_female[['year', dep_variable_hat]]
+df3 = income_series_wb_female[['year', dep_variable_hat]]
+
+df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
+
+df_cat2['gb_female_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_x']), 4)
+df_cat2['wb_female_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_y']), 4)
+
+df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Merging
+#################
+
+df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
+
+df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
+df_final['pop_share_male']   = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_female'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
+
+df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
+
+df_final = df_final[df_final['year'] >= base_year + 1].reset_index(drop=True)
+
+#################
+### Reshape
+#################
+
+def reshape_data(df, category):
+    years = df['year'].unique()
+    reshaped_data = {}
+    for year in years:
+        reshaped_data[f'gb_error_{year}'] = df.loc[df['year'] == year, f'gb_{category}_error'].values
+        reshaped_data[f'wb_error_{year}'] = df.loc[df['year'] == year, f'wb_{category}_error'].values
+        reshaped_data[f'pop_share_{year}'] = df.loc[df['year'] == year, f'pop_share_{category}'].values
+    return pd.DataFrame(reshaped_data, index=[category])
+
+male_data   = reshape_data(df_final, 'male')
+female_data = reshape_data(df_final, 'female')
+
+df_aux = pd.concat([male_data, female_data])
+
+#################
+### Append
+#################
+df_main = pd.concat([df_main, df_aux])
+
+#--------------------------------------------------------------------------
+# 8. Formal and Informal data
+#--------------------------------------------------------------------------
+
+grouping_variables = ['year', 'categ_lab']
+
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_wb = postEstimation.group_variables_for_time_series(grouping_variables, df_wb, frequency='yearly')
+
+# Split between urbano and rural:
+income_series_pred_informal = income_series_pred.query("categ_lab== 'Informal' ")
+income_series_pred_formal = income_series_pred.query("categ_lab== 'Not Informal' ")
+
+income_series_true_informal = income_series_true.query("categ_lab== 'Informal' ")
+income_series_true_formal = income_series_true.query("categ_lab== 'Not Informal' ")
+
+income_series_wb_informal = income_series_wb.query("categ_lab== 'Informal' ")
+income_series_wb_formal = income_series_wb.query("categ_lab== 'Not Informal' ")
+
+#################
+### Formal data
+#################
+
+df1 = income_series_true_formal[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_formal[['year', dep_variable_hat]]
+df3 = income_series_wb_formal[['year', dep_variable_hat]]
+
+df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
+
+df_cat1['gb_formal_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_x']), 4)
+df_cat1['wb_formal_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_y']), 4)
+
+df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Informal data
+#################
+
+df1 = income_series_true_informal[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_informal[['year', dep_variable_hat]]
+df3 = income_series_wb_informal[['year', dep_variable_hat]]
+
+df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
+
+df_cat2['gb_informal_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_x']), 4)
+df_cat2['wb_informal_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_y']), 4)
+
+df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Merging
+#################
+
+df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
+
+df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
+df_final['pop_share_formal']   = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_informal'] = round(df_final['n_people_y'] / df_final['t_people'], 4)
+
+df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
+
+df_final = df_final[df_final['year'] >= base_year + 1].reset_index(drop=True)
+
+#################
+### Reshape
+#################
+
+def reshape_data(df, category):
+    years = df['year'].unique()
+    reshaped_data = {}
+    for year in years:
+        reshaped_data[f'gb_error_{year}'] = df.loc[df['year'] == year, f'gb_{category}_error'].values
+        reshaped_data[f'wb_error_{year}'] = df.loc[df['year'] == year, f'wb_{category}_error'].values
+        reshaped_data[f'pop_share_{year}'] = df.loc[df['year'] == year, f'pop_share_{category}'].values
+    return pd.DataFrame(reshaped_data, index=[category])
+
+formal_data   = reshape_data(df_final, 'formal')
+informal_data = reshape_data(df_final, 'informal')
+
+df_aux = pd.concat([formal_data, informal_data])
+
+
+#################
+### Append
+#################
+df_main = pd.concat([df_main, df_aux])
+
+#--------------------------------------------------------------------------
+# 9. Elementary and Superior Education data
+#--------------------------------------------------------------------------
+
+grouping_variables = ['year', 'educ']
+
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_wb = postEstimation.group_variables_for_time_series(grouping_variables, df_wb, frequency='yearly')
+
+# Split between urbano and rural:
+income_series_pred_elementary = income_series_pred.query("educ== 'Elementary' ")
+income_series_pred_superior = income_series_pred.query("educ== 'Superior' ")
+
+income_series_true_elementary = income_series_true.query("educ== 'Elementary' ")
+income_series_true_superior = income_series_true.query("educ== 'Superior' ")
+
+income_series_wb_elementary = income_series_wb.query("educ== 'Elementary' ")
+income_series_wb_superior = income_series_wb.query("educ== 'Superior' ")
+
+#################
+### Elementary data
+#################
+
+df1 = income_series_true_elementary[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_elementary[['year', dep_variable_hat]]
+df3 = income_series_wb_elementary[['year', dep_variable_hat]]
+
+df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
+
+df_cat1['gb_elementary_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_x']), 4)
+df_cat1['wb_elementary_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat+'_y']), 4)
+
+df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Superior data
+#################
+
+df1 = income_series_true_superior[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_superior[['year', dep_variable_hat]]
+df3 = income_series_wb_superior[['year', dep_variable_hat]]
+
+df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
+
+df_cat2['gb_superior_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_x']), 4)
+df_cat2['wb_superior_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat+'_y']), 4)
+
+df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Merging
+#################
+
+df_final = pd.merge(df_cat1, df_cat2, on='year', how='inner')
+
+df_final['t_people'] = df_final['n_people_x'] + df_final['n_people_y']
+df_final['pop_share_elementary'] = round(df_final['n_people_x'] / df_final['t_people'], 4)
+df_final['pop_share_superior']   = round(df_final['n_people_y'] / df_final['t_people'], 4)
+
+df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, -2, -1]]
+
+df_final = df_final[df_final['year'] >= base_year + 1].reset_index(drop=True)
+
+#################
+### Reshape
+#################
+
+def reshape_data(df, category):
+    years = df['year'].unique()
+    reshaped_data = {}
+    for year in years:
+        reshaped_data[f'gb_error_{year}'] = df.loc[df['year'] == year, f'gb_{category}_error'].values
+        reshaped_data[f'wb_error_{year}'] = df.loc[df['year'] == year, f'wb_{category}_error'].values
+        reshaped_data[f'pop_share_{year}'] = df.loc[df['year'] == year, f'pop_share_{category}'].values
+    return pd.DataFrame(reshaped_data, index=[category])
+
+elementary_data = reshape_data(df_final, 'elementary')
+superior_data   = reshape_data(df_final, 'superior')
+
+df_aux = pd.concat([elementary_data, superior_data])
+
+#################
+### Append
+#################
+df_main = pd.concat([df_main, df_aux])
+
+#--------------------------------------------------------------------------
+# 10. Number of children data
+#--------------------------------------------------------------------------
+
+
+grouping_variables = ['year', 'n_children']
+
+income_series_pred = postEstimation.group_variables_for_time_series(grouping_variables, df, frequency='yearly')
+income_series_true = postEstimation.group_variables_for_time_series(grouping_variables, df_true, frequency='yearly')
+income_series_wb = postEstimation.group_variables_for_time_series(grouping_variables, df_wb, frequency='yearly')
+
+# Split between urbano and rural:
+income_series_true_nchild0 = income_series_true.query("n_children== '0' ")
+income_series_true_nchild1 = income_series_true.query("n_children== '1' ")
+income_series_true_nchild2 = income_series_true.query("n_children== '2' ")
+income_series_true_nchild3 = income_series_true.query("n_children== '3 more' ")
+
+income_series_pred_nchild0 = income_series_pred.query("n_children== '0' ")
+income_series_pred_nchild1 = income_series_pred.query("n_children== '1' ")
+income_series_pred_nchild2 = income_series_pred.query("n_children== '2' ")
+income_series_pred_nchild3 = income_series_pred.query("n_children== '3 more' ")
+
+income_series_wb_nchild0 = income_series_wb.query("n_children== '0' ")
+income_series_wb_nchild1 = income_series_wb.query("n_children== '1' ")
+income_series_wb_nchild2 = income_series_wb.query("n_children== '2' ")
+income_series_wb_nchild3 = income_series_wb.query("n_children== '3 more' ")
+
+#################
+### 0 children data
+#################
+
+df1 = income_series_true_nchild0[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_nchild0[['year', dep_variable_hat]]
+df3 = income_series_wb_nchild0[['year', dep_variable_hat]]
+
+df_cat1 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat1 = pd.merge(df_cat1, df3, on='year', how='inner')
+
+df_cat1['gb_nchild0_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat + '_x']), 4)
+df_cat1['wb_nchild0_error'] = round(np.abs(df_cat1[dep_variable] - df_cat1[dep_variable_hat + '_y']), 4)
+
+df_cat1 = df_cat1.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### 1 children data
+#################
+
+df1 = income_series_true_nchild1[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_nchild1[['year', dep_variable_hat]]
+df3 = income_series_wb_nchild1[['year', dep_variable_hat]]
+
+df_cat2 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat2 = pd.merge(df_cat2, df3, on='year', how='inner')
+
+df_cat2['gb_nchild1_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat + '_x']), 4)
+df_cat2['wb_nchild1_error'] = round(np.abs(df_cat2[dep_variable] - df_cat2[dep_variable_hat + '_y']), 4)
+
+df_cat2 = df_cat2.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### 2 children data
+#################
+
+df1 = income_series_true_nchild2[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_nchild2[['year', dep_variable_hat]]
+df3 = income_series_wb_nchild2[['year', dep_variable_hat]]
+
+df_cat3 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat3 = pd.merge(df_cat3, df3, on='year', how='inner')
+
+df_cat3['gb_nchild2_error'] = round(np.abs(df_cat3[dep_variable] - df_cat3[dep_variable_hat + '_x']), 4)
+df_cat3['wb_nchild2_error'] = round(np.abs(df_cat3[dep_variable] - df_cat3[dep_variable_hat + '_y']), 4)
+
+df_cat3 = df_cat3.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### 3 children data
+#################
+
+df1 = income_series_true_nchild3[['year', 'n_people', dep_variable]]
+df2 = income_series_pred_nchild3[['year', dep_variable_hat]]
+df3 = income_series_wb_nchild3[['year', dep_variable_hat]]
+
+df_cat4 = pd.merge(df1,     df2, on='year', how='inner')
+df_cat4 = pd.merge(df_cat4, df3, on='year', how='inner')
+
+df_cat4['gb_nchild3_error'] = round(np.abs(df_cat4[dep_variable] - df_cat4[dep_variable_hat + '_x']), 4)
+df_cat4['wb_nchild3_error'] = round(np.abs(df_cat4[dep_variable] - df_cat4[dep_variable_hat + '_y']), 4)
+
+df_cat4 = df_cat4.iloc[ : , [0, 1, -2, -1]]
+
+#################
+### Merging
+#################
+
+df_final = pd.merge(df_cat1,  df_cat2, on='year', how='inner', suffixes=['0', '1'])
+df_final = pd.merge(df_final, df_cat3, on='year', how='inner')
+df_final = pd.merge(df_final, df_cat4, on='year', how='inner', suffixes=['2', '3'])
+
+df_final['t_people'] = df_final['n_people0'] + df_final['n_people1'] + df_final['n_people2'] + df_final['n_people3']
+df_final['pop_share_nchild0'] = round(df_final['n_people0'] / df_final['t_people'], 4)
+df_final['pop_share_nchild1'] = round(df_final['n_people1'] / df_final['t_people'], 4)
+df_final['pop_share_nchild2'] = round(df_final['n_people2'] / df_final['t_people'], 4)
+df_final['pop_share_nchild3'] = round(df_final['n_people3'] / df_final['t_people'], 4)
+
+df_final = df_final.iloc[ : , [0, 2, 3, 5, 6, 8, 9, 11, 12, -4, -3, -2, -1]]
+
+df_final = df_final[df_final['year'] >= base_year + 1].reset_index(drop=True)
+
+#################
+### Reshape
+#################
+
+def reshape_data(df, category):
+    years = df['year'].unique()
+    reshaped_data = {}
+    for year in years:
+        reshaped_data[f'gb_error_{year}'] = df.loc[df['year'] == year, f'gb_{category}_error'].values
+        reshaped_data[f'wb_error_{year}'] = df.loc[df['year'] == year, f'wb_{category}_error'].values
+        reshaped_data[f'pop_share_{year}'] = df.loc[df['year'] == year, f'pop_share_{category}'].values
+    return pd.DataFrame(reshaped_data, index=[category])
+
+nchild0_data = reshape_data(df_final, 'nchild0')
+nchild1_data = reshape_data(df_final, 'nchild1')
+nchild2_data = reshape_data(df_final, 'nchild2')
+nchild3_data = reshape_data(df_final, 'nchild3')
+
+df_aux = pd.concat([nchild0_data, nchild1_data, nchild2_data, nchild3_data])
+
+#################
+### Append
+#################
+df_main = pd.concat([df_main, df_aux])
+
+#--------------------------------------------------------------------------
+# 11. Export table
+#--------------------------------------------------------------------------
+
+path_github = "C:/Users/franc/OneDrive/Documents/GitHub/Chicagobooth/WorldBankPorvertyPrediction/tables"
+file_name   = "prediction_average_income_error_table.csv"  
+df_main.to_csv(os.path.join(path_github, file_name), index=True)
+
+
+

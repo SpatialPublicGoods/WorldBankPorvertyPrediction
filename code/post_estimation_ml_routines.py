@@ -188,7 +188,7 @@ class PostEstimationRoutines(DataPreparationForML):
             income_series: The DataFrame with the grouped variables and the calculated mean and standard deviation of the income per capita.
         """
 
-        df = df.copy()
+        df = df.copy().reset_index(drop=True)
 
         household_weight = df['n_people']/df.groupby(grouping_variables)['n_people'].transform('sum')
 
@@ -199,7 +199,7 @@ class PostEstimationRoutines(DataPreparationForML):
                                     .agg({
                                         'income_pc_weighted': 'sum', 
                                         'income_pc_hat_weighted': 'sum',
-                                        'n_people': 'count'
+                                        'n_people': 'sum'
                                         })
                                     .reset_index()
                                     )
@@ -229,7 +229,7 @@ class PostEstimationRoutines(DataPreparationForML):
             income_series: The DataFrame with the grouped variables and the calculated mean and standard deviation of the income per capita.
         """
 
-        df = df.copy()
+        df = df.copy().reset_index(drop=True)
 
         household_weight = df['n_people']/df.groupby(grouping_variables)['n_people'].transform('sum')
         
@@ -263,6 +263,7 @@ class PostEstimationRoutines(DataPreparationForML):
             income_series['date'] = pd.to_datetime(income_series.rename(columns={'quarter':'month'})[['year','month']].assign(DAY=1))
 
         return income_series
+
 
 
     def add_predicted_income_to_dataframe(self, ml_dataset, X_standardized, Y_standardized, scaler_Y, model):
