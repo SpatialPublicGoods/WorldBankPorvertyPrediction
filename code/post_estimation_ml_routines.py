@@ -26,14 +26,53 @@ class PostEstimationRoutines(DataPreparationForML):
         self.g_2019 =	0.4
         self.g_2020 =	-12.2
         self.g_2021 =	12.0
+
+        # Population Growth:
+        self.pop_growth_2017 = 1.506946185
+        self.pop_growth_2018 = 1.87582164
+        self.pop_growth_2019 = 1.909725608
+        self.pop_growth_2020 = 1.451402401
+        self.pop_growth_2021 = 1.225660252
+
+        # Prediction (End year October):
+        self.g_pred_2017 = 2.8 - self.pop_growth_2017
+        self.g_pred_2018 = 3.5 - self.pop_growth_2018
+        self.g_pred_2019 = 3.8 - self.pop_growth_2019
+        self.g_pred_2020 = -12.0 - self.pop_growth_2020
+        self.g_pred_2021 = 11.3 - self.pop_growth_2021
+
+
+        # Prediction (Start year April):
+        self.g_pred_lag_2017 = 4.2 - self.pop_growth_2017
+        self.g_pred_lag_2018 = 3.8 - self.pop_growth_2018
+        self.g_pred_lag_2019 = 3.8 - self.pop_growth_2019
+        self.g_pred_lag_2020 = -4.7 - self.pop_growth_2020
+        self.g_pred_lag_2021 = 8.1 - self.pop_growth_2021
+
+
         self.growth_scale = lambda x: 1 + x/100
 
-        self.growth_rate = {2017: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017]])[-1], 
-                            2018: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018]])[-1], 
-                            2019: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019]])[-1],
-                            2020: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019, self.g_2020]])[-1],
-                            2021: np.cumprod([self.growth_scale(gg) for gg in [self.g_2017, self.g_2018, self.g_2019, self.g_2020, self.g_2021]])[-1]
-                            }
+        self.growth_rate_perfect_forecast = {2017: self.growth_scale(self.g_2017), 
+                                            2018: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018), 
+                                            2019: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019),
+                                            2020: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_2020),
+                                            2021: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_2020) * self.growth_scale(self.g_2021)
+                                            }
+
+        self.growth_rate_predicted = {2017: self.growth_scale(self.g_pred_2017), 
+                                            2018: self.growth_scale(self.g_2017) * self.growth_scale(self.g_pred_2018), 
+                                            2019: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_pred_2019),
+                                            2020: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_pred_2020),
+                                            2021: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_2020) * self.growth_scale(self.g_pred_2021)
+                                            }
+
+        self.growth_rate_predicted_lag = {2017: self.growth_scale(self.g_pred_lag_2017), 
+                                            2018: self.growth_scale(self.g_2017) * self.growth_scale(self.g_pred_lag_2018), 
+                                            2019: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_pred_lag_2019),
+                                            2020: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_pred_lag_2020),
+                                            2021: self.growth_scale(self.g_2017) * self.growth_scale(self.g_2018)  * self.growth_scale(self.g_2019) * self.growth_scale(self.g_2020) * self.growth_scale(self.g_pred_lag_2021)
+                                            }
+
 
 
     def get_variables_for_gb_model(self, lasso_model, X):
@@ -291,7 +330,7 @@ class PostEstimationRoutines(DataPreparationForML):
     
 
     
-    def compute_predicted_income_world_bank(self, ml_dataset):
+    def compute_predicted_income_world_bank(self, ml_dataset, forecast='perfect'):
 
         """
         This function adds predicted income to the DataFrame according to WB.
@@ -301,7 +340,12 @@ class PostEstimationRoutines(DataPreparationForML):
             DataFrame: The input DataFrame with the added predicted income.
         """
 
-        ml_dataset['income_pc_hat'] = ml_dataset['income_pc'] * ml_dataset['year'].map(self.growth_rate)
+        if forecast=='perfect':
+            ml_dataset['income_pc_hat_perfect_forecast'] = ml_dataset['income_pc'] * ml_dataset['year'].map(self.growth_rate_perfect_forecast)
+        elif forecast=='predicted':
+            ml_dataset['income_pc_hat'] = ml_dataset['income_pc'] * ml_dataset['year'].map(self.growth_rate_predicted)
+        elif forecast=='lagged':
+            ml_dataset['income_pc_hat_lagged_forecast'] = ml_dataset['income_pc'] * ml_dataset['year'].map(self.growth_rate_predicted_lag)     
 
         return ml_dataset
 

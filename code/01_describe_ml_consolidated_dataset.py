@@ -15,7 +15,7 @@ dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
-date = '2024-01-14' # date = '2023-12-15' #datetime.today().strftime('%Y-%m-%d')
+date = '2024-04-24' # date = '2023-12-15' #datetime.today().strftime('%Y-%m-%d')
 
 #--------------
 

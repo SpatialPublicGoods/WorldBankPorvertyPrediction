@@ -135,7 +135,7 @@ ml_dataset_filtered_validation = postEstimation.add_shocks_and_compute_income(ml
                                                             ml_dataset_filtered_train, 
                                                             )
 # Compute predicted income (WB version):
-ml_dataset_filtered_validation_world_bank = postEstimation.compute_predicted_income_world_bank(ml_dataset_filtered_validation_world_bank)
+ml_dataset_filtered_validation_world_bank = postEstimation.compute_predicted_income_world_bank(ml_dataset_filtered_validation_world_bank, forecast='predicted')
 
 #--------------------------------------------------------------------------
 # 5. Compiling both datasets and creating some variables:
@@ -665,16 +665,8 @@ df_main = pd.concat([df_main, df_aux])
 #--------------------------------------------------------------------------
 
 path_github = "C:/Users/franc/OneDrive/Documents/GitHub/Chicagobooth/WorldBankPorvertyPrediction/tables"
-file_name   = "prediction_error_table.csv"
+file_name   = "prediction_error_table.csv"  
 df_main.to_csv(os.path.join(path_github, file_name), index=True)
-
-
-
-
-
-
-
-
 
 
 

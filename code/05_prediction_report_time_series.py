@@ -134,7 +134,7 @@ ml_dataset_filtered_validation = postEstimation.add_shocks_and_compute_income(ml
                                                             ml_dataset_filtered_train, 
                                                             )
 # Compute predicted income (WB version):
-ml_dataset_filtered_validation_world_bank = postEstimation.compute_predicted_income_world_bank(ml_dataset_filtered_validation_world_bank)
+ml_dataset_filtered_validation_world_bank = postEstimation.compute_predicted_income_world_bank(ml_dataset_filtered_validation_world_bank, forecast='predicted')
 
 #--------------------------------------------------------------------------
 # 5. Compiling both datasets and creating some variables:
@@ -179,7 +179,7 @@ grouping_variables = ['year']
 
 income_series_pred  = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df, frequency='yearly')
 income_series_true  = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_true, frequency='yearly')
-income_series_wb    = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_wb, frequency='yearly')
+income_series_wb    = postEstimation.group_variables_for_time_series(grouping_variables = grouping_variables, df=df_wb.reset_index(drop=True), frequency='yearly')
 
 # Plotting:
 plt.clf()
