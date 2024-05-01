@@ -282,19 +282,19 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     region_data_true = ml_dataset_filtered_true[ml_dataset_filtered_true['ubigeo_region'] == region]
     sns.histplot(region_data['income_pc_hat'], 
                     color=settings.color1, 
-                  #   kde=True, 
                     label='Predicted Income', 
                     stat='density', 
                     fill=False, 
                     element='step',
+                    linewidth=2,  # Set the line width here
                     ax=ax)
     sns.histplot(region_data_true['income_pc'], 
                     color=settings.color2, 
-                  #   kde=True, 
                     label='True Income', 
                     stat='density', 
                     fill=False, 
                     element='step',
+                    linewidth=2,  # Set the line width here
                     ax=ax)
     ax.set_xlim(0, 2000)
     ax.set_title(region)

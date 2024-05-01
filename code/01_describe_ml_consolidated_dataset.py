@@ -11,7 +11,7 @@ from global_settings import global_settings
 # Parameters
 dataPath = 'J:/My Drive/PovertyPredictionRealTime/data'
 
-dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
+# dataPath = '/home/fcalle0/datasets/WorldBankPovertyPrediction/'
 
 freq = 'm'
 
@@ -47,14 +47,25 @@ print("Descriptive Statistics for Numerical Data:\n", numerical_descriptive_stat
 #%% 1. First run raw correlation between lagged variables and income_pc:
 #--------------------------------------------------------------
 
-# Income vs lagged income (log-log):
-sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged'], 
-            y=ml_dataset_filtered['log_income_pc'],
-            scatter_kws={'alpha':0.5}, 
-            line_kws={"color": "red"}, 
-            x_bins=1000)
-# plt.xlim(5,12)
-# plt.ylim(5,12)
+x_min = ml_dataset_filtered['log_income_pc_lagged'].min()  # Minimum x value
+x_max = ml_dataset_filtered['log_income_pc_lagged'].max()  # Maximum x value
+num_bins = 100  # Number of bins
+
+# Generate bins with equal ranges using numpy's linspace
+bins = np.linspace(x_min, x_max, num_bins + 1)  # +1 because we need 100 intervals (101 points)
+
+# Now use these bins in your regplot
+sns.regplot(
+    x=ml_dataset_filtered['log_income_pc_lagged'],
+    y=ml_dataset_filtered['log_income_pc'],
+    scatter_kws={'alpha':0.5},
+    line_kws={"color": settings.color2, 'lw': 1},
+    color=settings.color1,
+    x_ci=None,
+    x_bins=bins  # Use the generated bins
+)
+plt.xlim(x_min-.5,x_max+.5)
+plt.ylim(x_min-.5,x_max+.5)
 plt.savefig('../figures/figA_income_vs_lagged_income_log_log_scatterplot.pdf', bbox_inches='tight')
 plt.clf()
 
@@ -63,11 +74,14 @@ print('Figure Aa saved...')
 #Lag 2:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged2'], 
             y=ml_dataset_filtered['log_income_pc'],
-            scatter_kws={'alpha':0.5}, 
-            line_kws={"color": "red"}, 
-            x_bins=1000)
-# plt.xlim(5,12)
-# plt.ylim(5,12)
+            scatter_kws={'alpha':0.5},
+            line_kws={"color": settings.color2, 'lw': 1},
+            color=settings.color1,
+            x_ci=None,
+            x_bins=bins  # Use the generated bins
+            )
+plt.xlim(x_min-.5,x_max+.5)
+plt.ylim(x_min-.5,x_max+.5)
 plt.savefig('../figures/figA_income_vs_lagged2_income_log_log_scatterplot.pdf', bbox_inches='tight')
 plt.clf()
 print('Figure Ab saved...')
@@ -75,11 +89,14 @@ print('Figure Ab saved...')
 #Lag 3:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged3'], 
             y=ml_dataset_filtered['log_income_pc'],
-            scatter_kws={'alpha':0.5}, 
-            line_kws={"color": "red"}, 
-            x_bins=1000)
-# plt.xlim(5,12)
-# plt.ylim(5,12)
+            scatter_kws={'alpha':0.5},
+            line_kws={"color": settings.color2, 'lw': 1},
+            color=settings.color1,
+            x_ci=None,
+            x_bins=bins  # Use the generated bins
+            )
+plt.xlim(x_min-.5,x_max+.5)
+plt.ylim(x_min-.5,x_max+.5)
 plt.savefig('../figures/figA_income_vs_lagged3_income_log_log_scatterplot.pdf', bbox_inches='tight')
 plt.clf()
 print('Figure Ac saved...')
@@ -87,11 +104,14 @@ print('Figure Ac saved...')
 #Lag 4:
 sns.regplot(x=ml_dataset_filtered['log_income_pc_lagged4'], 
             y=ml_dataset_filtered['log_income_pc'],
-            scatter_kws={'alpha':0.5}, 
-            line_kws={"color": "red"}, 
-            x_bins=1000)
-# plt.xlim(5,12)
-# plt.ylim(5,12)
+            scatter_kws={'alpha':0.5},
+            line_kws={"color": settings.color2, 'lw': 1},
+            color=settings.color1,
+            x_ci=None,
+            x_bins=bins  # Use the generated bins
+            )
+plt.xlim(x_min-.5,x_max+.5)
+plt.ylim(x_min-.5,x_max+.5)
 plt.savefig('../figures/figA_income_vs_lagged4_income_log_log_scatterplot.pdf', bbox_inches='tight')
 plt.clf()
 print('Figure Ac saved...')
@@ -148,14 +168,16 @@ for i, col in enumerate(X.columns[:-1]):
     col_num = i % n_cols
     # Create binscatter plot for numerical data
     if X[col].dtype in ['int64', 'float64']:
+
         # Plot the binscatter plot
         sns.regplot(x=X[col], 
                     y=Y, 
                     ax=axes[row_num, col_num],
                     scatter_kws={'alpha':0.5}, 
-                    line_kws={"color": "gray"}, 
+                    fit_reg=False,  # Disable fitting regression line
                     x_ci=None, 
-                    x_bins=20)
+                    x_bins=20
+                    )
         
         axes[row_num, col_num].set_title(f'')
 
@@ -168,8 +190,8 @@ print('Figure C saved...')
 #--------------------------------------------------------------
 
 # Define the grid size for the subplot
-n_rows = 6
-n_cols = 4
+n_rows = 3
+n_cols = 3
 
 # Create a figure with subplots
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 15))  # Adjust the figure size as needed
@@ -187,9 +209,11 @@ for i, col in enumerate(X_geodata.columns[1:]):
                     y=Y, 
                     ax=axes[row_num, col_num],
                     scatter_kws={'alpha':0.5}, 
-                    line_kws={"color": "red"}, 
+                    fit_reg=False,  # Disable fitting regression line
                     x_ci=None, 
-                    x_bins=20)
+                    x_bins=20,
+                    color=settings.color1,
+                    )
         axes[row_num, col_num].set_title(f'')
 
 plt.savefig('../figures/figD_correlation_ml_dataset_weather_variables.pdf', bbox_inches='tight')
