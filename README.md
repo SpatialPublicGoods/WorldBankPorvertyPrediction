@@ -8,5 +8,6 @@ cd paper/
 
 Then run biber and the makefile
 
-biber main
+biber main 
+
 make
