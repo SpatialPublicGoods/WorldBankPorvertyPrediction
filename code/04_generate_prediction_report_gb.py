@@ -282,7 +282,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
     region_data_true = ml_dataset_filtered_true[ml_dataset_filtered_true['ubigeo_region'] == region]
     sns.histplot(region_data['income_pc_hat'], 
                     color=settings.color1, 
-                    label='Predicted Income', 
+                    label='Gradient Boosting', 
                     stat='density', 
                     fill=False, 
                     element='step',
@@ -296,6 +296,7 @@ for i, region in enumerate(ml_dataset_filtered_validation['ubigeo_region'].uniqu
                     element='step',
                     linewidth=2,  # Set the line width here
                     ax=ax)
+
     ax.set_xlim(0, 2000)
     ax.set_title(region)
     ax.legend()
@@ -379,7 +380,7 @@ ml_dataset_filtered_validation_world_bank['poor_hat_pf_685'] = (ml_dataset_filte
 ml_dataset_filtered_validation_world_bank['poor_hat_pf_365'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_perfect_forecast'] <= ml_dataset_filtered_validation_world_bank['lp_365usd_ppp']) * household_weight_prediction
 ml_dataset_filtered_validation_world_bank['poor_hat_pf_215'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_perfect_forecast'] <= ml_dataset_filtered_validation_world_bank['lp_215usd_ppp']) * household_weight_prediction
 
-# Predicted data WB Lagged Forecast: (using 2016 data)
+# Predicted data WB Forecast Oct. t-1: (using 2016 data)
 ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_validation_world_bank['mieperho'] * ml_dataset_filtered_validation_world_bank['pondera_i']
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['poor_hat_lf_685'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_lagged_forecast'] <= ml_dataset_filtered_validation_world_bank['lp_685usd_ppp']) * household_weight_prediction
@@ -398,9 +399,9 @@ porverty_comparison_pred_wb_lf = ml_dataset_filtered_validation_world_bank.loc[:
 porverty_comparison_diff = pd.DataFrame(porverty_comparison_test.copy())
 
 # Get difference between the true and predicted national rate:
-porverty_comparison_diff.loc[:,'Lagged Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
+porverty_comparison_diff.loc[:,'Forecast Oct. t-1'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
 porverty_comparison_diff.loc[:,'Gradient Boosting'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
-porverty_comparison_diff.loc[:,'World Bank'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
+porverty_comparison_diff.loc[:,'Forecast Apr. t (WB)'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
 porverty_comparison_diff.loc[:,'Perfect Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_pf)
 
 porverty_comparison_diff = porverty_comparison_diff.drop(columns=[yy])
@@ -433,9 +434,9 @@ porverty_comparison_pred_wb_lf = ml_dataset_filtered_validation_world_bank.loc[:
 porverty_comparison_diff = pd.DataFrame(porverty_comparison_test.copy())
 
 # Get difference between the true and predicted national rate:
-porverty_comparison_diff.loc[:,'Lagged Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
+porverty_comparison_diff.loc[:,'Forecast Oct. t-1'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
 porverty_comparison_diff.loc[:,'Gradient Boosting'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
-porverty_comparison_diff.loc[:,'World Bank'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
+porverty_comparison_diff.loc[:,'Forecast Apr. t (WB)'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
 porverty_comparison_diff.loc[:,'Perfect Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_pf)
 
 porverty_comparison_diff = porverty_comparison_diff.drop(columns=[yy])
@@ -458,7 +459,7 @@ print('Figure 3 saved')
 
 
 #%% Figure 3 (fig3_prediction_vs_true_avg_income_national): 
-# Poverty Rate National World Bank
+# Poverty Rate National Forecast Apr. t
 #-----------------------------------------------------------------------------------
 
 # True data: (2017-2019)
@@ -481,7 +482,7 @@ ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_vali
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['income_hat_pf'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_perfect_forecast']) * household_weight_prediction
 
-# Predicted data WB Lagged Forecast: (using 2016 data)
+# Predicted data WB Forecast Oct. t-1: (using 2016 data)
 ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_validation_world_bank['mieperho'] * ml_dataset_filtered_validation_world_bank['pondera_i']
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['income_hat_lf'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_lagged_forecast'] ) * household_weight_prediction
@@ -498,9 +499,9 @@ porverty_comparison_pred_wb_lf = ml_dataset_filtered_validation_world_bank.loc[:
 porverty_comparison_diff = pd.DataFrame(porverty_comparison_test.copy())
 
 # Get difference between the true and predicted national rate:
-porverty_comparison_diff.loc[:,'Lagged Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
+porverty_comparison_diff.loc[:,'Forecast Oct. t-1'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
 porverty_comparison_diff.loc[:,'Gradient Boosting'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
-porverty_comparison_diff.loc[:,'World Bank'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
+porverty_comparison_diff.loc[:,'Forecast Apr. t (WB)'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
 porverty_comparison_diff.loc[:,'Perfect Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_pf)
 
 porverty_comparison_diff = porverty_comparison_diff.drop(columns=[yy])
@@ -532,9 +533,9 @@ porverty_comparison_pred_wb_lf = ml_dataset_filtered_validation_world_bank.loc[:
 porverty_comparison_diff = pd.DataFrame(porverty_comparison_test.copy())
 
 # Get difference between the true and predicted national rate:
-porverty_comparison_diff.loc[:,'Lagged Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
+porverty_comparison_diff.loc[:,'Forecast Oct. t-1'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_lf)
 porverty_comparison_diff.loc[:,'Gradient Boosting'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
-porverty_comparison_diff.loc[:,'World Bank'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
+porverty_comparison_diff.loc[:,'Forecast Apr. t (WB)'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb)
 porverty_comparison_diff.loc[:,'Perfect Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred_wb_pf)
 
 porverty_comparison_diff = porverty_comparison_diff.drop(columns=[yy])
@@ -557,7 +558,7 @@ print('Figure 3 saved')
 
 
 #%% Figure 3 (fig3_prediction_vs_true_poverty_rate_national): 
-# Poverty Rate National (World Bank version)
+# Poverty Rate National (Forecast Apr. t version)
 #-----------------------------------------------------------------------------------
 
 # True data: (2017-2019)
@@ -570,7 +571,7 @@ ml_dataset_filtered_validation['n_people'] = ml_dataset_filtered_validation['mie
 household_weight_prediction = ml_dataset_filtered_validation['n_people']/ml_dataset_filtered_validation.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation['income_pc_hat_weighted'] = (ml_dataset_filtered_validation['income_pc_hat'] ) * household_weight_prediction
 
-# Predicted data World Bank: (using 2016 data)
+# Predicted data Forecast Apr. t: (using 2016 data)
 ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_validation_world_bank['mieperho'] * ml_dataset_filtered_validation_world_bank['pondera_i']
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['income_pc_hat_weighted'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat'] ) * household_weight_prediction
@@ -580,7 +581,7 @@ ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_vali
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['income_pc_hat_perfect_forecast_weighted'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_perfect_forecast'] ) * household_weight_prediction
 
-# Predicted data Lagged forecast: (using 2016 data)
+# Predicted data Forecast Oct. t-1: (using 2016 data)
 ml_dataset_filtered_validation_world_bank['n_people'] = ml_dataset_filtered_validation_world_bank['mieperho'] * ml_dataset_filtered_validation_world_bank['pondera_i']
 household_weight_prediction = ml_dataset_filtered_validation_world_bank['n_people']/ml_dataset_filtered_validation_world_bank.groupby('year')['n_people'].transform('sum')
 ml_dataset_filtered_validation_world_bank['income_pc_hat_lagged_forecast_weighted'] = (ml_dataset_filtered_validation_world_bank['income_pc_hat_lagged_forecast'] ) * household_weight_prediction
@@ -594,9 +595,9 @@ porverty_comparison_world_bank_pred_pf = ml_dataset_filtered_validation_world_ba
 porverty_comparison_world_bank_pred_lf = ml_dataset_filtered_validation_world_bank.loc[:,['year','income_pc_hat_lagged_forecast_weighted']].groupby('year').sum()
 
 porverty_comparison_diff = porverty_comparison_test.copy()
-porverty_comparison_diff['Lagged Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_world_bank_pred_lf)
+porverty_comparison_diff['Forecast Oct. t-1'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_world_bank_pred_lf)
 porverty_comparison_diff['Gradient Boosting'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_pred)
-porverty_comparison_diff['World Bank'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_world_bank_pred)
+porverty_comparison_diff['Forecast Apr. t (WB)'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_world_bank_pred)
 porverty_comparison_diff['Perfect Forecast'] = np.array(porverty_comparison_test) - np.array(porverty_comparison_world_bank_pred_pf)
 
 
@@ -740,7 +741,7 @@ for pp in ['685', '365', '215']:
   plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_regions_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
 
-# World Bank:
+# Forecast Apr. t:
 #--------------------------------------------------------------
 
 
@@ -864,7 +865,7 @@ for pp in ['685', '365', '215']:
   plt.savefig('../figures/fig4_2_prediction_vs_true_poverty_rate_provincia_p'+ pp +  '_scatter.pdf', bbox_inches='tight')
 
 
-# World Bank:
+# Forecast Apr. t:
 #--------------------------------------------------------------
 
 for pp in ['685', '365', '215']:
