@@ -6,7 +6,7 @@ When running paper go to paper root file:
 
 cd paper/
 
-Then run biber and the makefile
+Then, open cmd and run biber and the makefile
 
 biber main 
 
