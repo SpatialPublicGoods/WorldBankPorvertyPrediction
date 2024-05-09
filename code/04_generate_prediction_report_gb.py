@@ -423,7 +423,7 @@ plt.savefig('../figures/fig3_poverty_prediction_' + str(yy) + '.pdf', bbox_inche
 print('Figure 3 saved')
 
 # Year
-yy = 2020
+yy = 2021
 
 # Get difference between the true and predicted national rate:
 porverty_comparison_test = ml_dataset_filtered_true.loc[:,['year','poor_685','poor_365','poor_215']].groupby('year').sum().loc[yy,:]
