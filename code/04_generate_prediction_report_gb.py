@@ -1009,3 +1009,64 @@ sns.histplot(porverty_comparison_provincia_diff['diff_wb_215'],
 plt.legend()
 plt.xlim(-.3, .3)
 plt.savefig('../figures/fig5c_prediction_vs_wb_diff_distribution_215.pdf', bbox_inches='tight')
+
+
+
+#%% Figure 9 (fig9_gini_time_series): 
+# Gini Coefficient
+#------------------------------------------
+
+# True data: (2017-2019)
+df_true['n_people'] = df_true['mieperho'] * df_true['pondera_i']
+household_weight = df_true['n_people']/df_true.groupby('year')['n_people'].transform('sum')
+df_true['income_pc_weighted'] = df_true['income_pc'] # * household_weight
+
+# Predicted data: (using 2016 data)
+df['n_people'] = df['mieperho'] * df['pondera_i']
+household_weight = df['n_people']/df.groupby('year')['n_people'].transform('sum')
+df['income_pc_hat_weighted'] = df['income_pc_hat']  #* household_weight
+
+# Predicted data WB: (using 2016 data)
+df_wb['n_people'] = df_wb['mieperho'] * df_wb['pondera_i']
+household_weight = df_wb['n_people']/df_wb.groupby('year')['n_people'].transform('sum')
+df_wb['income_pc_hat_weighted'] = df_wb['income_pc_hat']  #* household_weight
+
+def gini_coefficient(income_data):
+    # Ensure the income data is sorted.
+    sorted_income = np.sort(income_data)
+    n = len(income_data)
+    
+    # Calculate the cumulative sum of the sorted incomes
+    cumulative_income = np.cumsum(sorted_income)
+    
+    # Calculate the Gini coefficient using the simplified formula
+    index_times_income = np.sum((np.arange(1, n+1) * sorted_income))
+    total_income = cumulative_income[-1]  # This is the same as np.sum(sorted_income)
+    gini = (2 * index_times_income) / (n * total_income) - (n + 1) / n
+    
+    return gini
+
+
+income_series = df_true.query('income_pc < 2200').groupby('year')['income_pc_weighted'].apply(gini_coefficient).reset_index().rename(columns={'income_pc_weighted':'gini'})
+income_series['gini_hat'] = list(df.query('income_pc_hat < 2200').groupby('year')['income_pc_hat_weighted'].apply(gini_coefficient))
+income_series['gini_hat_wb'] = list(df_wb.query('income_pc_hat < 2200').groupby('year')['income_pc_hat_weighted'].apply(gini_coefficient))
+# Convert 'year' and 'month' to a datetime
+income_series['date'] = pd.to_datetime(income_series[['year']].assign(MONTH=1,DAY=1))
+
+# Plotting:
+plt.clf()
+# Plotting the means with standard deviation
+plt.figure(figsize=(10, 10))
+plt.plot(income_series['date'], income_series['gini'], label='True GINI', color=settings.color1)
+plt.plot(income_series['date'], income_series['gini_hat'], label='Predicted GINI', color=settings.color2, linestyle='--')
+plt.plot(income_series['date'], income_series['gini_hat_wb'], label='Predicted GINI (WB)', color=settings.color3, linestyle='--')
+plt.xlabel('Date')
+plt.ylabel('Income')
+# plt.ylim(0.5, .8)
+plt.legend()
+plt.grid(True)
+# plt.show()
+
+plt.savefig('../figures/fig9_gini_time_series.pdf', bbox_inches='tight')
+print('Figure 9 saved')
+print('End of code: 04_generate_prediction_report.py')
