@@ -7,4 +7,4 @@ geopandas==0.12.2
 seaborn==0.12.2
 dbfread==2.0.7
 statsmodels==0.13.5
-sklearn=1.2.1
+sklearn==1.2.1
